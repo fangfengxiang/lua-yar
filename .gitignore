@@ -1,0 +1,6 @@
+.codebuddy
+.spec
+.vscode
+.idea
+.luarocks
+lua_modules

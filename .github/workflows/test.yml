@@ -1,0 +1,36 @@
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        lua: ['5.1', 'luajit-2.1', '5.3']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Lua
+        uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: ${{ matrix.lua }}
+
+      - name: Setup LuaRocks
+        uses: leafo/gh-actions-luarocks@v6
+
+      - name: Install dependencies
+        run: |
+          luarocks install luasocket
+          luarocks install luacheck
+
+      - name: Lint
+        run: luacheck src/yar/ test/ example/
+
+      - name: Test rockspec
+        run: luarocks make --local
+
+      - name: Test
+        run: lua test/client_test.lua
