@@ -1,70 +1,69 @@
 name: Release
 
+# Triggered when a version tag (v*) is pushed.
+# Convention: tag name = v<version>, e.g. v0.1.0, v0.2.0-rc1
+# The tag must match an existing rockspec: lua-yar-<version>-1.rockspec
 on:
   push:
     tags:
       - 'v*'
 
 permissions:
-  contents: write
+  contents: write  # Required to create releases and upload assets
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      # Expose secret to env so step-level `if` can check for emptiness.
+      # If not configured, LuaRocks upload is skipped automatically.
+      LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Extract version from tag
+        id: version
+        # v0.1.0 -> 0.1.0,  v0.2.0-rc1 -> 0.2.0-rc1
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Verify rockspec exists
+        run: |
+          ROCKSPEC="lua-yar-${{ steps.version.outputs.version }}-1.rockspec"
+          if [ ! -f "$ROCKSPEC" ]; then
+            echo "::error::Rockspec '$ROCKSPEC' not found. Create it before tagging."
+            exit 1
+          fi
+          echo "rockspec=$ROCKSPEC" >> $GITHUB_ENV
+
+      - name: Create source tarball
+        run: |
+          git archive --format=tar.gz \
+            --prefix=lua-yar-${{ steps.version.outputs.version }}/ \
+            -o lua-yar-${{ steps.version.outputs.version }}.tar.gz HEAD
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          # Tags containing a hyphen (e.g. v0.1.0-rc1) are pre-releases.
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: |
+            lua-yar-${{ steps.version.outputs.version }}.tar.gz
+            ${{ env.rockspec }}
+
+      # --- Optional: publish to LuaRocks.org ---
+      # Requires LUAROCKS_API_KEY secret. Skipped if not configured.
       - name: Setup Lua
+        if: ${{ env.LUAROCKS_API_KEY != '' }}
         uses: leafo/gh-actions-lua@v13
         with:
           luaVersion: '5.1'
 
       - name: Setup LuaRocks
+        if: ${{ env.LUAROCKS_API_KEY != '' }}
         uses: leafo/gh-actions-luarocks@v6
 
-      - name: Extract version from tag
-        id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-
-      - name: Verify rockspec exists
-        run: |
-          ROCKSPEC=$(ls lua-yar-${{ steps.version.outputs.version }}-*.rockspec 2>/dev/null | sort -V | tail -1)
-          if [ -z "$ROCKSPEC" ]; then
-            echo "::error::No rockspec found for version ${{ steps.version.outputs.version }}"
-            exit 1
-          fi
-          echo "ROCKSPEC=$ROCKSPEC" >> "$GITHUB_ENV"
-
       - name: Upload to LuaRocks
-        run: luarocks upload "$ROCKSPEC" --api-key="$LUAROCKS_API_KEY"
-        env:
-          LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-          draft: false
-          prerelease: false
-
-  opm:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install opm
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq libwww-perl libjson-xs-perl liburi-perl libio-compress-perl
-          wget -q https://raw.githubusercontent.com/openresty/opm/master/bin/opm -O /tmp/opm
-          chmod +x /tmp/opm
-
-      - name: Configure opm credentials
-        run: |
-          echo "github_account=${{ secrets.OPM_GITHUB_ACCOUNT }}" > ~/.opmrc
-          echo "github_token=${{ secrets.OPM_GITHUB_TOKEN }}" >> ~/.opmrc
-          echo "upload_server=https://opm.openresty.org" >> ~/.opmrc
-          echo "download_server=https://opm.openresty.org" >> ~/.opmrc
-
-      - name: Build and upload to OPM
-        run: /tmp/opm build && /tmp/opm upload
+        if: ${{ env.LUAROCKS_API_KEY != '' }}
+        run: luarocks upload "${{ env.rockspec }}" --api-key="$LUAROCKS_API_KEY"
