@@ -44,7 +44,30 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ github.ref_name }}
+          name: lua-yar v${{ steps.version.outputs.version }}
+          body: |
+            纯 Lua 实现的 Yar RPC 协议框架，兼容 PHP Yar / yar-c 互操作。
+
+            ## 安装
+
+            ```bash
+            luarocks install lua-yar
+            ```
+
+            ## 主要特性
+
+            - JSON / Msgpack 双 packager（纯 Lua 实现）
+            - HTTP / TCP 双传输，支持 `http://` `https://` `tcp://` `unix://`
+            - OpenResty cosocket 注入（`Client.set_socket(ngx.socket)`）
+            - 结构化 Error 对象（5 类错误码）
+            - 零 C 扩展依赖，网络层可插拔
+
+            ## 文档
+
+            - [README](https://github.com/fangfengxiang/lua-yar#readme)
+            - [API 文档](https://github.com/fangfengxiang/lua-yar/blob/main/docs/api.md)
+            - [完整变更日志](https://github.com/fangfengxiang/lua-yar/blob/main/CHANGELOG.md)
+          # Append auto-generated commit list after the body above
           generate_release_notes: true
           # Tags containing a hyphen (e.g. v0.1.0-rc1) are pre-releases.
           prerelease: ${{ contains(github.ref_name, '-') }}
