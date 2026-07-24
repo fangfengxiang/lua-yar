@@ -11,7 +11,7 @@ jobs:
         lua: ['5.1', 'luajit-2.1', '5.3']
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Lua
         uses: leafo/gh-actions-lua@v13
@@ -66,7 +66,7 @@ jobs:
   no-luasocket:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Lua
         uses: leafo/gh-actions-lua@v13
@@ -96,7 +96,7 @@ jobs:
   openresty:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install OpenResty
         run: |
@@ -158,7 +158,7 @@ jobs:
   interop:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup PHP with yar + msgpack + pcntl extensions
         uses: shivammathur/setup-php@v2
