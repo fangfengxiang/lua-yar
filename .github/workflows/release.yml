@@ -14,10 +14,6 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    env:
-      # Expose secret to env so step-level `if` can check for emptiness.
-      # If not configured, LuaRocks upload is skipped automatically.
-      LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -75,17 +71,40 @@ jobs:
             lua-yar-${{ steps.version.outputs.version }}.tar.gz
             ${{ env.rockspec }}
 
-      # --- Optional: publish to LuaRocks.org ---
-      # Requires LUAROCKS_API_KEY secret. Skipped if not configured.
+  # --- Publish to LuaRocks.org ---
+  # Requires LUAROCKS_API_KEY secret (Settings → Secrets → Actions).
+  # If not configured, upload is skipped; lint still runs.
+  luarocks:
+    runs-on: ubuntu-latest
+    needs: release
+    env:
+      LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Verify rockspec exists
+        run: |
+          ROCKSPEC="lua-yar-${{ steps.version.outputs.version }}-1.rockspec"
+          if [ ! -f "$ROCKSPEC" ]; then
+            echo "::error::Rockspec '$ROCKSPEC' not found"
+            exit 1
+          fi
+          echo "rockspec=$ROCKSPEC" >> $GITHUB_ENV
+
       - name: Setup Lua
-        if: ${{ env.LUAROCKS_API_KEY != '' }}
         uses: leafo/gh-actions-lua@v13
         with:
           luaVersion: '5.1'
 
       - name: Setup LuaRocks
-        if: ${{ env.LUAROCKS_API_KEY != '' }}
         uses: leafo/gh-actions-luarocks@v6
+
+      - name: Lint rockspec
+        run: luarocks lint "${{ env.rockspec }}"
 
       - name: Upload to LuaRocks
         if: ${{ env.LUAROCKS_API_KEY != '' }}
