@@ -1,0 +1,20 @@
+-- luacov 配置：覆盖率采集范围与排除项
+-- 运行：busted --coverage（busted 内部调用 luacov）
+
+-- 白名单模式：只跟踪 src/yar/ 下的模块
+-- 比黑名单更健壮——新增第三方依赖无需手动添加排除项
+include = {
+    "src/yar/.*",
+}
+
+-- 排除项（在 include 范围内进一步排除）
+-- 注意：luacov 模式不包含 .lua 扩展名，路径分隔符固定为 /
+exclude = {
+    "src/yar/init$",   -- 仅导出聚合，无逻辑
+}
+
+-- 报告文件名
+reportfile = "luacov.report.out"
+
+-- 每处理 100 行保存一次统计（避免进程异常退出时丢失数据）
+savestepsize = 100

@@ -1,0 +1,19 @@
+# Codecov 配置
+# https://docs.codecov.com/docs/codecovyml-reference
+
+coverage:
+  status:
+    project:
+      default:
+        target: auto          # 与基准分支对比，不要求提升
+        threshold: 5%         # 允许 5% 波动，避免噪声
+    patch:
+      default:
+        target: 60%           # 新增代码至少 60% 覆盖
+        threshold: 5%
+
+comment:
+  layout: "reach,diff,flags,files,footer"
+  behavior: default
+
+# Lua 覆盖率报告由 luacov 生成，CI 中用 codecov-action 上传

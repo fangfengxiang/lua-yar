@@ -23,14 +23,168 @@ jobs:
 
       - name: Install dependencies
         run: |
+          luarocks install luafilesystem
           luarocks install luasocket
           luarocks install luacheck
+          luarocks install luacov
+          # Pre-install mediator_lua and penlight from git (broken archive URLs on luarocks.org)
+          git clone --depth 1 https://github.com/Olivine-Labs/mediator_lua.git /tmp/mediator_lua
+          cd /tmp/mediator_lua && luarocks make --deps-mode=none
+          git clone --depth 1 --branch 1.15.0 https://github.com/lunarmodules/penlight.git /tmp/penlight
+          cd /tmp/penlight && luarocks make --deps-mode=none
+          # Install busted normally — luarocks sees mediator_lua + penlight already installed, installs remaining deps
+          luarocks install busted
 
       - name: Lint
-        run: luacheck src/yar/ test/ example/
+        run: luacheck src/yar/ spec/ example/
 
       - name: Test rockspec
         run: luarocks make --local
 
-      - name: Test
-        run: lua test/client_test.lua
+      - name: Test with coverage
+        run: busted --coverage
+
+      - name: Generate coverage report
+        run: luacov
+
+      - name: Print coverage summary
+        run: tail -30 luacov.report.out
+
+      - name: Upload coverage to Codecov
+        if: matrix.lua == '5.1'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./luacov.report.out
+          flags: lua-${{ matrix.lua }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+      - name: Benchmark
+        run: lua test/benchmark.lua
+
+  # 无 luasocket 环境测试：验证软依赖优雅降级
+  no-luasocket:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Lua
+        uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: '5.1'
+
+      - name: Setup LuaRocks
+        uses: leafo/gh-actions-luarocks@v6
+
+      - name: Install busted (no luasocket)
+        run: |
+          luarocks install luafilesystem
+          git clone --depth 1 https://github.com/Olivine-Labs/mediator_lua.git /tmp/mediator_lua
+          cd /tmp/mediator_lua && luarocks make --deps-mode=none
+          git clone --depth 1 --branch 1.15.0 https://github.com/lunarmodules/penlight.git /tmp/penlight
+          cd /tmp/penlight && luarocks make --deps-mode=none
+          luarocks install busted
+
+      - name: Test rockspec (no luasocket)
+        run: luarocks make --local
+
+      - name: Test without luasocket
+        run: busted spec/soft_dependency_spec.lua
+
+  # OpenResty 兼容性 + 端到端测试
+  # K3 提案：cosocket 注入、连接池参数透传、HTTP Provider 委托、content_by_lua 上下文、并发安全
+  openresty:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OpenResty
+        run: |
+          wget -qO - https://openresty.org/package/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/openresty-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/openresty-archive-keyring.gpg] http://openresty.org/package/ubuntu $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/openresty.list
+          sudo apt-get update
+          sudo apt-get install -y openresty
+
+      - name: Add OpenResty to PATH
+        run: echo "/usr/local/openresty/bin" >> $GITHUB_PATH
+
+      - name: Setup Lua 5.1 (for TCP server subprocess)
+        uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: '5.1'
+
+      - name: Setup LuaRocks
+        uses: leafo/gh-actions-luarocks@v6
+
+      - name: Install luasocket, lua-resty-http and luacov
+        run: |
+          luarocks install luasocket
+          luarocks install lua-resty-http
+          luarocks install luacov
+
+      - name: Setup PHP with yar + msgpack + pcntl extensions
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: yar, msgpack, pcntl
+          coverage: none
+
+      - name: Compatibility tests (resty CLI, with coverage)
+        run: resty -e 'require("luacov.runner").init()' test/resty_test.lua
+
+      - name: E2E tests — cosocket TCP + connection pool + HTTP provider + concurrency (with coverage)
+        run: resty -e 'require("luacov.runner").init()' test/openresty_e2e_test.lua
+
+      - name: E2E tests — HTTP content_by_lua (nginx)
+        run: bash test/openresty_http_e2e.sh
+
+      - name: Concurrent tests — PHP → OpenResty (50 concurrent, 2 workers, HTTP + TCP)
+        run: bash test/concurrent_openresty.sh
+
+      - name: Generate E2E coverage report
+        run: luacov
+
+      - name: Upload E2E coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./luacov.report.out
+          flags: openresty-e2e
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  # PHP 互操作测试：lua-yar ↔ PHP Yar 双向端到端（JSON + Msgpack）
+  # 场景 1：Lua 客户端 → PHP Yar 服务端
+  # 场景 2：PHP 客户端 → Lua Yar 服务端
+  interop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP with yar + msgpack + pcntl extensions
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: yar, msgpack, pcntl
+          coverage: none
+
+      - name: Setup Lua
+        uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: '5.1'
+
+      - name: Setup LuaRocks
+        uses: leafo/gh-actions-luarocks@v6
+
+      - name: Install dependencies
+        run: |
+          luarocks install luafilesystem
+          luarocks install luasocket
+
+      - name: Test rockspec
+        run: luarocks make --local
+
+      - name: Interop tests — Lua ↔ PHP (JSON + Msgpack)
+        run: bash test/interop.sh
+
+      - name: Concurrent tests — PHP → Lua native (3 concurrent, HTTP + TCP)
+        run: bash test/concurrent_e2e.sh

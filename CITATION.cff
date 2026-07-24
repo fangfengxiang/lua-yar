@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: lua-yar
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - given-names: fangfengxiang
+    email: fangfengxiang@gmail.com
+repository-code: "https://github.com/fangfengxiang/lua-yar"
+url: "https://github.com/fangfengxiang/lua-yar"
+abstract: "Pure Lua implementation of the Yar RPC protocol. Zero-dependency, coroutine-friendly, binary protocol stream, interoperable with PHP Yar / yar-C. Supports TCP / HTTP / Unix Socket transport, runs on standard Lua + luasocket, OpenResty, copas, lua-eco, Skynet."
+keywords:
+  - rpc
+  - yar
+  - lua
+  - openresty
+  - binary-protocol
+  - luarocks
+  - opm
+  - fast
+  - concurrent
+  - simple
+license: Apache-2.0
+version: "0.1.0"
+date-released: "2026-07-19"

@@ -1,0 +1,16 @@
+{
+    "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+    "runtime.version": "Lua 5.1",
+    "runtime.pathStrategy": "always",
+    "workspace.library": [],
+    "diagnostics.globals": ["ngx"],
+    "diagnostics.severity": {
+        "unused-local": "Warning",
+        "unused-function": "Warning",
+        "undefined-global": "Warning"
+    },
+    "format": {
+        "enable": false
+    },
+    "hint.enable": true
+}

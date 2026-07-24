@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Lua
+        uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: '5.1'
+
+      - name: Setup LuaRocks
+        uses: leafo/gh-actions-luarocks@v6
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify rockspec exists
+        run: |
+          ROCKSPEC=$(ls lua-yar-${{ steps.version.outputs.version }}-*.rockspec 2>/dev/null | sort -V | tail -1)
+          if [ -z "$ROCKSPEC" ]; then
+            echo "::error::No rockspec found for version ${{ steps.version.outputs.version }}"
+            exit 1
+          fi
+          echo "ROCKSPEC=$ROCKSPEC" >> "$GITHUB_ENV"
+
+      - name: Upload to LuaRocks
+        run: luarocks upload "$ROCKSPEC" --api-key="$LUAROCKS_API_KEY"
+        env:
+          LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+  opm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install opm
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libwww-perl libjson-xs-perl liburi-perl libio-compress-perl
+          wget -q https://raw.githubusercontent.com/openresty/opm/master/bin/opm -O /tmp/opm
+          chmod +x /tmp/opm
+
+      - name: Configure opm credentials
+        run: |
+          echo "github_account=${{ secrets.OPM_GITHUB_ACCOUNT }}" > ~/.opmrc
+          echo "github_token=${{ secrets.OPM_GITHUB_TOKEN }}" >> ~/.opmrc
+          echo "upload_server=https://opm.openresty.org" >> ~/.opmrc
+          echo "download_server=https://opm.openresty.org" >> ~/.opmrc
+
+      - name: Build and upload to OPM
+        run: /tmp/opm build && /tmp/opm upload
