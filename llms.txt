@@ -1,0 +1,59 @@
+# Lua-Yar
+
+> Yar RPC protocol implementation for Lua. Zero-dependency, coroutine-friendly, binary protocol, interoperable with PHP Yar / yar-C / lua-resty-yar. Supports TCP / HTTP / Unix Socket transport, runs on standard Lua + luasocket, OpenResty, copas, lua-eco, Skynet.
+
+Lua-Yar is a pure Lua implementation of the [Yar](https://github.com/laruence/yar) RPC framework (Yet Another RPC Framework), originally from the PHP ecosystem. It enables cross-language RPC via binary protocol streams, with no IDL compilation or heavy runtime required.
+
+## Quick Start
+
+```lua
+local Yar = require("yar")
+
+-- Client
+local client = Yar.client.new("tcp://127.0.0.1:8888")
+local result = client:call("add", {1, 2})  -- returns 3
+
+-- Server
+local server = Yar.server.new({
+    add = function(a, b) return a + b end,
+})
+server:listen("tcp://0.0.0.0:8888")
+server:loop()
+```
+
+Install: `luarocks install lua-yar`
+
+## Docs
+
+- [Protocol Specification](docs/protocol.md): YAR binary protocol format — header, framing, packager, request/response body
+- [API Reference](docs/api.md): Server / Client / Packager / Transport API signatures and usage
+- [Server Implementation Examples](docs/server-implementations.md): OpenResty / copas / lua-eco / Skynet / coroutine integration patterns
+- [Tutorial](docs/tutorial.md): Step-by-step guide from first client call to production server
+- [How-To Guide](docs/how-to.md): Common tasks — custom packager, HTTP provider injection, hooks, TLS, unix socket
+- [Design Rationale](docs/design-rationale.md): Architecture decisions, error handling philosophy, OOP patterns
+
+## Examples
+
+- [TCP Server](example/server_tcp.lua): minimal TCP server with loop()
+- [HTTP Server](example/server_http.lua): HTTP server with luasocket
+- [OpenResty Server](example/server_openresty.lua): ngx.content_by_lua integration
+- [Copas Server](example/server_copas.lua): copas coroutine concurrent server
+- [lua-eco Server](example/server_luaeco.lua): lua-eco integration
+- [Client](example/client.lua): basic client usage
+- [Hooks](example/hooks.lua): request/response interception
+- [Custom C Extension Packager](example/register_cext.lua): register cjson/cmsgpack as packager
+
+## Design
+
+- [Design Decisions (ADR Index)](docs/design/decisions.md): 32 architecture decision records across 7 modules
+- [Transport Layer](docs/design/transport-layer.md): socket abstraction, HTTP delegation, connection management
+- [Server Layer](docs/design/server-layer.md): Dispatcher / Transport / Daemon three-layer separation
+- [Protocol Layer](docs/design/protocol-layer.md): framing, header, packager protocol compliance
+- [Cross-Cutting Concerns](docs/design/cross-cutting.md): error handling, logging, hooks, naming conventions
+
+## Optional
+
+- [Changelog](CHANGELOG.md): version history
+- [Contributing Guide](CONTRIBUTING.md): development setup, code style, testing
+- [Comprehensive Review](docs/reports/comprehensive-review.md): code quality assessment (8.6/10)
+- [Performance Benchmark](docs/reports/performance-benchmark.md): throughput and latency benchmarks

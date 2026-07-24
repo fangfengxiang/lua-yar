@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/</loc>
+    <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/tutorial/</loc>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/how-to/</loc>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/protocol/</loc>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/api/</loc>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/server-implementations/</loc>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/design-rationale/</loc>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/design/decisions/</loc>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/design/transport-layer/</loc>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/design/server-layer/</loc>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/design/protocol-layer/</loc>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/design/packager-layer/</loc>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/design/message-layer/</loc>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/design/client-layer/</loc>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/design/cross-cutting/</loc>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/reports/comprehensive-review/</loc>
+    <priority>0.3</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/reports/performance-benchmark-v2/</loc>
+    <priority>0.3</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/reports/architecture-review/</loc>
+    <priority>0.3</priority>
+  </url>
+
+  <url>
+    <loc>https://fangfengxiang.github.io/lua-yar/reports/test-coverage/</loc>
+    <priority>0.3</priority>
+  </url>
+
+</urlset>

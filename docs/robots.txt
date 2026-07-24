@@ -1,0 +1,7 @@
+# lua-yar documentation — robots.txt
+# 文档站全站放行，仅屏蔽自动生成的搜索结果页（薄内容，无 SEO 价值）
+User-agent: *
+Allow: /
+Disallow: /search/
+
+Sitemap: https://fangfengxiang.github.io/lua-yar/sitemap.xml

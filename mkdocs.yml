@@ -1,0 +1,68 @@
+site_name: lua-yar
+site_url: https://fangfengxiang.github.io/lua-yar/
+site_description: Yar RPC protocol implementation for Lua — zero-dependency, coroutine-friendly, binary protocol
+repo_url: https://github.com/fangfengxiang/lua-yar
+repo_name: fangfengxiang/lua-yar
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Tutorial: tutorial.md
+      - How-To Guide: how-to.md
+  - Reference:
+      - Protocol Specification: protocol.md
+      - API Reference: api.md
+      - Server Implementations: server-implementations.md
+  - Design:
+      - Design Rationale: design-rationale.md
+      - ADR Index: design/decisions.md
+      - Transport Layer: design/transport-layer.md
+      - Server Layer: design/server-layer.md
+      - Protocol Layer: design/protocol-layer.md
+      - Packager Layer: design/packager-layer.md
+      - Message Layer: design/message-layer.md
+      - Client Layer: design/client-layer.md
+      - Cross-Cutting Concerns: design/cross-cutting.md
+  - Reports:
+      - Comprehensive Review: reports/comprehensive-review.md
+      - Performance Benchmark: reports/performance-benchmark.md
+      - Architecture Review: reports/architecture-review.md
+      - Test Coverage: reports/test-coverage.md
