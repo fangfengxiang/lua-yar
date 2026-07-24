@@ -1,6 +1,13 @@
 .codebuddy
+.claude
 .spec
 .vscode
 .idea
 .luarocks
+openspec
+
 lua_modules
+
+# luacov 覆盖率产物（.luacov 是配置文件，需要纳入版本控制）
+luacov.*
+!.luacov
