@@ -1,0 +1,7 @@
+-- busted 配置：默认扫描 spec/ 目录。
+-- 覆盖率由 CI 命令行 --coverage 显式启用，不在配置中强制。
+return {
+    default = {
+        pattern = "spec",
+    },
+}
