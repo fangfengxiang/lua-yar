@@ -52,7 +52,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: matrix.lua == '5.1'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           files: ./luacov.report.out
           flags: lua-${{ matrix.lua }}
@@ -145,7 +145,7 @@ jobs:
         run: luacov
 
       - name: Upload E2E coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           files: ./luacov.report.out
           flags: openresty-e2e
