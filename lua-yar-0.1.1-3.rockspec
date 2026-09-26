@@ -1,9 +1,9 @@
 package = "lua-yar"
-version = "0.1.0-2"
+version = "0.1.1-3"
 
 source = {
     url = "git+https://github.com/fangfengxiang/lua-yar.git",
-    tag = "v0.1.0"
+    tag = "v0.1.1"
 }
 
 description = {

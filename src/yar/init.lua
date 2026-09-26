@@ -15,7 +15,7 @@
 ---@field PACKAGER_MSGPACK string Msgpack packager name constant
 local _M = {}
 
-_M.VERSION          = "0.1.0"
+_M.VERSION          = "0.1.1"
 _M.PROTOCOL_VERSION = 1
 
 _M.client   = require("yar.client")
