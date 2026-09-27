@@ -1,7 +1,7 @@
 -- yar/server/dispatcher.lua
 -- YAR 协议核心：纯协议处理，不感知任何传输层（ngx / luasocket）。
 --
--- 核心契约：handle_message(data) 接收一条完整 YAR 二进制消息（packager+header+body），
+-- 核心契约：handle_message(data) 接收一条完整 YAR 二进制消息（header+packager+body），
 -- 解析、派发到已注册的方法，返回 YAR 二进制响应消息。与 HTTP/TCP 无关，无 I/O、无 yield，
 -- reentrant，可被任意协程 / OpenResty location 直接调用。
 -- 传输层（如何拿到 data、如何把响应写回）由调用方负责，见 server/tcp、server/http。
@@ -10,6 +10,7 @@ local Request  = require("yar.message.request")
 local Response = require("yar.message.response")
 local Protocol = require("yar.protocol.protocol")
 local Framing  = require("yar.protocol.framing")
+local Header   = require("yar.protocol.header")
 local Packager = require("yar.packager.packager")
 local Util     = require("yar.util")
 local Log      = require("yar.log")
@@ -224,11 +225,11 @@ function _M:handle_message(data)
         resp:set_error("body too large: " .. #data .. " bytes (max " .. max_body_len .. ")")
         return safe_render(resp, self.packager)
     end
-    -- 从消息头部读取 packager 名称，按客户端声明的 packager 解析与响应
+    -- 从消息中读取 packager 名称（header 之后 8 字节），按客户端声明的 packager 解析与响应
     -- 客户端声明的 packager 未知时回退到 self.packager。
     -- 注意：错误响应也用此 packager 渲染，packager_name 字段可能与请求头不匹配，
     -- 但这是最佳努力策略——客户端无法解析未知 packager 的响应。
-    local name = Util.trim_null(string.sub(data, 1, 8))
+    local name = Util.trim_null(string.sub(data, Header.SIZE + 1, Header.SIZE + 8))
     local packager = Packager.get(name)
     if not packager then
         packager = self.packager

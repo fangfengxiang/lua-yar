@@ -30,17 +30,17 @@ Yar 是一个轻量级并发 RPC 框架，所有请求与响应通过**二进制
 
 ```
 +-------------------+-------------------+---------------------+
-| Packager Name     | Yar Header        | Body                |
-| 8 字节            | 82 字节           | body_len 字节       |
+| Yar Header        | Packager Name     | Body                |
+| 82 字节           | 8 字节            | (body_len - 8) 字节 |
 +-------------------+-------------------+---------------------+
-  偏移 0              偏移 8              偏移 90
+  偏移 0              偏移 82             偏移 90
 ```
 
-- **Packager Name**（8 字节）：声明 Body 的序列化格式（JSON / Msgpack）。
 - **Yar Header**（82 字节）：固定长度的二进制协议头，包含事务 ID、魔数、认证信息等元数据。
-- **Body**（变长）：由 packager 编码的请求/响应结构，长度由 Header 中的 `body_len` 字段指定。
+- **Packager Name**（8 字节）：声明 Body 的序列化格式（JSON / Msgpack）。
+- **Body**（变长）：由 packager 编码的请求/响应结构，长度为 `body_len - 8`（`body_len` 含 packager name 8 字节）。
 
-最小消息长度 = 8 + 82 = **90 字节**（空 body 时）。实际消息长度 = 90 + `body_len`。
+最小消息长度 = 82 + 8 = **90 字节**（空 body 时，`body_len = 8`）。实际消息长度 = 82 + `body_len`。
 
 ---
 
@@ -71,7 +71,7 @@ Yar Header 为 82 字节的 packed 二进制结构，所有多字节整数使用
 | `reserved` | uint32 | 4 | 10 | `0` | 保留字段，当前未使用 |
 | `provider` | char[32] | 32 | 14 | `""` | 请求来源标识，右补 `\0`。客户端可通过 `setopt("provider", ...)` 设置 |
 | `token` | char[32] | 32 | 46 | `""` | 认证令牌，右补 `\0`。客户端可通过 `setopt("token", ...)` 设置 |
-| `body_len` | uint32 | 4 | 78 | `0` | 请求/响应体长度（字节），紧跟在 Header 之后 |
+| `body_len` | uint32 | 4 | 78 | `0` | Header 之后的数据总长度（字节）= packager name(8) + body(N)，与 PHP Yar 一致 |
 
 **总计**：4 + 2 + 4 + 4 + 32 + 32 + 4 = **82 字节**
 
@@ -94,7 +94,7 @@ Yar Header 为 82 字节的 packed 二进制结构，所有多字节整数使用
 **解析校验**：
 
 1. 读取 82 字节，检查 `magic_num`（偏移 6）是否等于 `0x80DFEC60`，不匹配则拒绝。
-2. 读取 `body_len`（偏移 78），确保后续有 `body_len` 字节可用。
+2. 读取 `body_len`（偏移 78），确保后续有 `body_len` 字节可用（`body_len` 含 packager name 8 字节 + body）。
 3. `provider` 与 `token` 字段解析时去除尾部 `\0`。
 
 > `provider` 和 `token` 最长 32 字节，超出部分截断。这两个字段在响应中通常原样回传（服务端不修改）。
@@ -237,18 +237,18 @@ HTTP 传输中，YAR 消息作为 HTTP POST 请求体整体发送，Content-Leng
 TCP 流中的每条 YAR 消息即一帧，帧的边界由 Header 中的 `body_len` 隐式界定：
 
 ```
-[packager_name:8][header:82][body:body_len]  →  下一帧...
+[header:82][packager_name:8][body:body_len-8]  →  下一帧...
 ```
 
 ### 接收流程
 
 lua-yar 的 `Framing` 模块（`src/yar/protocol/framing.lua`）实现了标准的 TCP 消息接收流程：
 
-1. **精确读取 90 字节头部**（packager name 8 字节 + header 82 字节）。
+1. **精确读取 82 字节 Header**。
    - TCP `receive(n)` 可能返回少于 n 字节，循环拼接直到收满。
-2. **解析 Header**：从第 9 字节开始解包 Header，校验 `magic_num`。
-3. **校验 body_len**：与 `max_body_len`（默认 10MB）比较，防止恶意大 body 导致内存耗尽。
-4. **精确读取 body_len 字节 body**。
+2. **解析 Header**：从第 1 字节开始解包 Header，校验 `magic_num`。
+3. **校验 body_len**：`body_len` 含 packager name(8) + body，实际 body = `body_len - 8`。与 `max_body_len`（默认 10MB）比较，防止恶意大 body 导致内存耗尽。
+4. **精确读取 body_len 字节**（packager name + body）。
 5. **拼接完整消息**：`head .. body`，交给协议层解析派发。
 
 ### 防御性校验
@@ -311,8 +311,6 @@ end
 调用 `add(1, 2)`，事务 ID `0x00003039`（12345）：
 
 ```
-Packager Name (8 bytes):  4A 53 4F 4E 00 00 00 00    "JSON\0\0\0\0"
-
 Header (82 bytes):
   id:        00 00 30 39                 12345
   version:   00 01                       1
@@ -320,12 +318,14 @@ Header (82 bytes):
   reserved:  00 00 00 00                 0
   provider:  00 00 00 00 ... (32 bytes)  ""
   token:     00 00 00 00 ... (32 bytes)  ""
-  body_len:  00 00 00 13                 19
+  body_len:  00 00 00 1B                 27 (8 + 19)
+
+Packager Name (8 bytes):  4A 53 4F 4E 00 00 00 00    "JSON\0\0\0\0"
 
 Body (19 bytes, JSON):
   {"i":12345,"m":"add","p":[1,2]}
 
-Total: 8 + 82 + 19 = 109 bytes
+Total: 82 + 27 = 109 bytes
 ```
 
 ### JSON 响应
@@ -333,8 +333,6 @@ Total: 8 + 82 + 19 = 109 bytes
 成功返回 `3`：
 
 ```
-Packager Name (8 bytes):  4A 53 4F 4E 00 00 00 00    "JSON\0\0\0\0"
-
 Header (82 bytes):
   id:        00 00 30 39                 12345 (与请求一致)
   version:   00 01                       1
@@ -342,12 +340,14 @@ Header (82 bytes):
   reserved:  00 00 00 00                 0
   provider:  00 00 00 00 ... (32 bytes)  ""
   token:     00 00 00 00 ... (32 bytes)  ""
-  body_len:  00 00 00 23                 35
+  body_len:  00 00 00 2B                 43 (8 + 35)
+
+Packager Name (8 bytes):  4A 53 4F 4E 00 00 00 00    "JSON\0\0\0\0"
 
 Body (35 bytes, JSON):
   {"i":12345,"s":0,"r":3,"o":"","e":""}
 
-Total: 8 + 82 + 35 = 125 bytes
+Total: 82 + 43 = 125 bytes
 ```
 
 ### Msgpack 请求
@@ -355,8 +355,6 @@ Total: 8 + 82 + 35 = 125 bytes
 同样的 `add(1, 2)` 调用，使用 Msgpack 编码，body 更紧凑：
 
 ```
-Packager Name (8 bytes):  4D 53 47 50 41 43 4B 00    "MSGPACK\0"
-
 Header (82 bytes):
   id:        00 00 30 39                 12345
   version:   00 01                       1
@@ -364,13 +362,15 @@ Header (82 bytes):
   reserved:  00 00 00 00                 0
   provider:  00 00 00 00 ... (32 bytes)  ""
   token:     00 00 00 00 ... (32 bytes)  ""
-  body_len:  00 00 00 0E                 14
+  body_len:  00 00 00 16                 22 (8 + 14)
+
+Packager Name (8 bytes):  4D 53 47 50 41 43 4B 00    "MSGPACK\0"
 
 Body (14 bytes, Msgpack):
   84 A1 69 39 CD 30 A1 6D A3 61 64 64 A1 70 92 01 02
   (map: {i:12345, m:"add", p:[1,2]})
 
-Total: 8 + 82 + 14 = 104 bytes
+Total: 82 + 22 = 104 bytes
 ```
 
 > Msgpack 的 body 比 JSON 更紧凑（14 vs 19 字节），在大量小消息场景下可节省带宽。
@@ -417,7 +417,7 @@ wireshark yar.pcap
 tcpdump -i lo -XX -s 0 'tcp port 8888'
 ```
 
-> YAR 帧前 8 字节是 packager name（`JSON\0\0\0\0` 或 `MSGPACK\0`），紧接着 82 字节 header 中偏移 6 处的 `80 DF EC 60` 是魔数，可在 Wireshark 中以此定位 YAR 帧。
+> YAR 帧前 82 字节是 header，其中偏移 6 处的 `80 DF EC 60` 是魔数。紧随其后的 8 字节是 packager name（`JSON\0\0\0\0` 或 `MSGPACK\0`），可在 Wireshark 中以此定位 YAR 帧。
 
 #### 2. HTTP 代理抓包（应用级，仅 HTTP 传输）
 

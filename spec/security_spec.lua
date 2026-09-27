@@ -33,7 +33,9 @@ describe("security boundaries", function()
             local req = Request.new({ method = "add", params = { 1, 2 }, provider = "p", token = "t" })
             local msg = Protocol.render(req, p)
             local header = Header.unpack(msg, Framing.HEADER_OFFSET)
-            local ok, err = Framing.check_body_len(msg, header.body_len - 1)
+            -- body_len 含 packager name(8)，实际 body = body_len - 8
+            local actual_body = header.body_len - 8
+            local ok, err = Framing.check_body_len(msg, actual_body - 1)
             assert.is_nil(ok)
             assert.truthy(string.find(err, "body too large"))
         end)

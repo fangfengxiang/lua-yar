@@ -304,8 +304,8 @@ Yar exchanges RPC messages via binary data streams. A complete message consists 
 
 ```
 +-------------------+-------------------+---------------------+
-| Packager Name     | Yar Header        | Body                |
-| 8 bytes           | 82 bytes          | body_len bytes      |
+| Yar Header        | Packager Name     | Body                |
+| 82 bytes          | 8 bytes           | (body_len - 8) bytes|
 +-------------------+-------------------+---------------------+
 ```
 

@@ -152,39 +152,27 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
-  # PHP 互操作测试：lua-yar ↔ PHP Yar 双向端到端（JSON + Msgpack）
-  # 场景 1：Lua 客户端 → PHP Yar 服务端
-  # 场景 2：PHP 客户端 → Lua Yar 服务端
+  # E2E 测试：Lua 自操作 + PHP-Lua 互通（JSON + Msgpack）
+  # 场景 1：Lua → Lua (HTTP)    JSON + Msgpack
+  # 场景 2：Lua → Lua (TCP)     JSON + Msgpack
+  # 场景 3：PHP → Lua (HTTP)    JSON + Msgpack
+  # 场景 4：PHP → Lua (TCP)     JSON + Msgpack
+  # 场景 5：Lua → PHP (HTTP)    JSON + Msgpack
+  # 使用 Docker 镜像打包全部依赖（Lua 5.1 + luasocket + PHP 8.2 + yar/msgpack/pcntl）
+  # 本地复现：bash test/e2e/docker.sh
   interop:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup PHP with yar + msgpack + pcntl extensions
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: yar, msgpack, pcntl
-          coverage: none
+      - name: Build E2E Docker image
+        run: docker build -t lua-yar-e2e test/e2e/
 
-      - name: Setup Lua
-        uses: leafo/gh-actions-lua@v13
-        with:
-          luaVersion: '5.1'
+      - name: E2E environment check
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-e2e bash test/e2e/check_env.sh
 
-      - name: Setup LuaRocks
-        uses: leafo/gh-actions-luarocks@v6
-
-      - name: Install dependencies
-        run: |
-          luarocks install luafilesystem
-          luarocks install luasocket
-
-      - name: Test rockspec
-        run: luarocks make --local
-
-      - name: Interop tests — Lua ↔ PHP (JSON + Msgpack)
-        run: bash test/interop.sh
+      - name: E2E tests — Lua self-interop + PHP interop (JSON + Msgpack)
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-e2e bash test/e2e/interop.sh
 
       - name: Concurrent tests — PHP → Lua native (3 concurrent, HTTP + TCP)
-        run: bash test/concurrent_e2e.sh
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-e2e bash test/concurrent_e2e.sh

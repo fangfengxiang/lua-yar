@@ -57,9 +57,9 @@
 
 | 端口 | 用途 | 文件 | 环境变量 |
 |------|------|------|----------|
-| 9800 | PHP 内置 server（互操作） | `interop.sh` `server.php` | `PHP_PORT` |
-| 9801 | Lua 原生 HTTP server（互操作） | `interop.sh` `interop_lua_server.lua` | `LUA_HTTP_PORT` |
-| 9802 | Lua 原生 TCP server（互操作） | `interop.sh` `interop_lua_tcp_server.lua` | `LUA_TCP_PORT` |
+| 9800 | PHP 内置 server（E2E 互通） | `test/e2e/lua_to_php_http.sh` `test/e2e/php_server.php` | `PHP_PORT` |
+| 9801 | Lua 原生 HTTP server（E2E 互通） | `test/e2e/lua_to_lua_http.sh` `test/e2e/php_to_lua_http.sh` `test/e2e/lua_http_server.lua` | `LUA_HTTP_PORT` |
+| 9802 | Lua 原生 TCP server（E2E 互通） | `test/e2e/lua_to_lua_tcp.sh` `test/e2e/php_to_lua_tcp.sh` `test/e2e/lua_tcp_server.lua` | `LUA_TCP_PORT` |
 | 9803 | 并发测试 Lua HTTP server | `concurrent_e2e.sh` | `CONCURRENT_LUA_HTTP_PORT` |
 | 9804 | 并发测试 Lua TCP server | `concurrent_e2e.sh` | `CONCURRENT_LUA_TCP_PORT` |
 | 9805 | 并发测试 OpenResty HTTP（via concurrent_openresty.sh） | `concurrent_e2e.sh` → `concurrent_openresty.sh` | `CONCURRENT_HTTP_PORT` |
@@ -72,7 +72,7 @@
 ```
 CI workflow (per-job env)
   └─ shell script (reads env, passes to subprocess)
-       ├─ Lua server: lua test/interop_lua_server.lua "$PORT"
+       ├─ Lua server: lua test/e2e/lua_http_server.lua "$PORT"
        ├─ PHP client: getenv("LUA_HTTP_PORT")
        └─ nginx.conf: listen 127.0.0.1:$PORT (heredoc 替换)
 ```

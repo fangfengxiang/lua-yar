@@ -45,7 +45,7 @@ YAR over HTTP 仅是 POST 一段二进制 body，用不到 HTTP/2、WebSocket、
 
 | 能力维度 | yar-c (C) | yar-lua | 评估 |
 |---|---|---|---|
-| YAR 二进制协议（8B packager + 82B header + body） | ✅ | ✅ | 完整对齐 |
+| YAR 二进制协议（82B header + 8B packager + body） | ✅ | ✅ | 完整对齐 |
 | Msgpack packager | ✅ 唯一支持 | ✅ `msgpack.lua` | 对齐 |
 | JSON packager | ❌ | ✅ `json.lua` | yar-lua 多一种 |
 | packager 可选/可注册 | ❌ 写死 msgpack | ✅ `Yar.register_packager` | yar-lua 更灵活 |
