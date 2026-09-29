@@ -7,7 +7,7 @@ source = {
 }
 
 description = {
-    summary = "Yar RPC Framework for Lua",
+    summary = "Yar (Yet Another RPC) Framework",
     detailed = [[
         Pure Lua implementation of the Yar RPC protocol.
         Provides yar-client and yar-server with HTTP/TCP transport.
@@ -24,7 +24,7 @@ dependencies = {
 }
 
 build = {
-    type = "none",
+    type = "builtin",
     modules = {
         ["yar"]                     = "src/yar/init.lua",
         ["yar.client"]              = "src/yar/client.lua",

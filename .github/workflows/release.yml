@@ -199,9 +199,35 @@ jobs:
       - name: Lint rockspec
         run: luarocks lint "${{ needs.prepare.outputs.rockspec }}"
 
+      - name: Diagnose API key & connectivity
+        if: ${{ env.LUAROCKS_API_KEY != '' }}
+        run: |
+          echo "luarocks: $(luarocks --version)"
+          # GitHub secrets pasted with trailing newline/whitespace break luarocks' HTTP request
+          KEY_CLEAN="$(printf '%s' "$LUAROCKS_API_KEY" | tr -d '\n\r \t')"
+          echo "raw key length:   ${#LUAROCKS_API_KEY}"
+          echo "clean key length: ${#KEY_CLEAN}"
+          if [ "${#LUAROCKS_API_KEY}" != "${#KEY_CLEAN}" ]; then
+            echo "::warning::API key had stray whitespace/newline (auto-stripped). Re-save the secret cleanly to stop this recurring."
+          fi
+          code=$(curl -sS -o /tmp/s.json -w "%{http_code}" "https://luarocks.org/api/1/${KEY_CLEAN}/status")
+          echo "luarocks.org /status HTTP code: ${code}"
+          echo "response body:"; head -c 300 /tmp/s.json; echo
+          if [ "$code" = "401" ]; then
+            echo "::error::API key invalid (HTTP 401). Recreate at https://luarocks.org/settings/api-keys and update LUAROCKS_API_KEY secret."
+            exit 1
+          fi
+          if [ "$code" != "200" ]; then
+            echo "::error::Unexpected /status code $code. See body above."
+            exit 1
+          fi
+          echo "LUAROCKS_API_KEY=${KEY_CLEAN}" >> "$GITHUB_ENV"
+
       - name: Upload to LuaRocks
         if: ${{ env.LUAROCKS_API_KEY != '' }}
-        run: luarocks upload "${{ needs.prepare.outputs.rockspec }}" --api-key="$LUAROCKS_API_KEY"
+        run: |
+          KEY="$(printf '%s' "$LUAROCKS_API_KEY" | tr -d '\n\r \t')"
+          luarocks upload "${{ needs.prepare.outputs.rockspec }}" --api-key="$KEY"
 
   # ── Publish to OPM (OpenResty Package Manager) ──
   # Requires OPM_USERNAME (repository variable) and OPM_PASSWORD (secret).

@@ -49,8 +49,7 @@ test/
 │   ├── bench_transport.lua       # 传输层基准测试
 │   ├── benchmark_matrix.lua      # 基准矩阵（多 packager × transport × runtime）
 │   ├── benchmark_xlib.lua        # 跨语言基准（Lua 侧）
-│   ├── benchmark_xlib.php        # 跨语言基准（PHP 侧）
-│   └── benchmark_xlib.py        # 跨语言基准（Python 侧）
+│   └── benchmark_xlib.php        # 跨语言基准（PHP 侧）
 │
 ├── diag_wire_layout.lua          # 协议 wire format 诊断工具（Lua）
 ├── diag_php_wire_layout.php      # 协议 wire format 诊断工具（PHP）

@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.2] - 2026-09-30
+
+### Fixed
+- **BREAKING**: wire format 对齐 PHP Yar — 帧布局从 `[packager:8][header:82][body]` 改为 `[header:82][packager:8][body]`，`body_len` 语义从"仅 body"改为"packager_name(8)+body(N)"（即 `body_len = 8 + N`）。修复与 PHP Yar / yar-c 互操作时 body 长度计算错位、packager name 读取偏移错误的问题
+- `dispatcher.lua` body 长度上限校验漏算 `PACKAGER_NAME_SIZE`（少 8 字节），错误消息 `#data`（总长度）与 `max_body_len`（body 上限）语义不匹配
+
+### Changed
+- `PACKAGER_NAME_SIZE` 提取到 `header.lua` 单一来源，消除 `protocol.lua` / `framing.lua` 重复定义魔数 8
+- `framing.lua` 导出 `HEADER_TOTAL` / `PACKAGER_NAME_SIZE` 供 dispatcher 复用，统一帧布局常量来源
+
+### Added
+- `test/diag_wire_layout.lua` / `test/diag_php_wire_layout.php` — wire format 布局诊断脚本，对比 PHP Yar 与 lua-yar 字节级一致性
+- `test/` 目录重组为 `e2e/`（端到端互操作）/ `benchmark/`（性能基准）/ `openresty/`（OpenResty 专属）三层结构，新增 `interop.sh` 统一 runner 与 Docker 环境封装
+- CI 接入 `benchmark-action` 自动生成性能看板，CI 内生成 perf wrapper 避免提交产物
+- `docs/reports/e2e-test-reflection.md`、`test-coverage.md`
+
 ## [0.1.1] - 2026-09-26
 
 ### Added
@@ -38,8 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - busted BDD 测试框架：33 个测试从 `test/client_test.lua` 迁移至 15 个 spec 文件 + `.busted` 配置
 - rockspec `test_dependencies` 声明（busted / luafilesystem / luacheck / luacov）
 - 并发端到端测试套件：PHP `pcntl_fork` 多进程并发 → Lua Yar 服务端，覆盖 4 场景（3 并发原生 HTTP/TCP 顺序处理 + 50 并发 OpenResty 2-worker 协程并发 HTTP/TCP），验证 requestId 数据完整性 + 日志协程异常检测 + 多 worker 负载分担，JSON + Msgpack 双 packager
-- `test/concurrent_e2e.sh` 总编排（原生 + OpenResty，HTTP + TCP）
-- `test/concurrent_openresty.sh` OpenResty 编排（nginx 2 workers，HTTP `content_by_lua` + stream `content_by_lua`）
+- `test/e2e/concurrent_e2e.sh` 原生编排（HTTP + TCP，支持场景过滤）
+- `test/openresty/concurrent_openresty.sh` OpenResty 编排（nginx 2 workers，HTTP `content_by_lua` + stream `content_by_lua`）
 - `test/nginx_concurrent_server.lua` OpenResty HTTP handler（requestId 日志追踪）
 - `test/nginx_stream_server.lua` OpenResty stream TCP handler（`ngx.req.socket(true)` + requestId 日志追踪）
 - CI `interop` job 增加 `pcntl` 扩展 + 并发测试 step
