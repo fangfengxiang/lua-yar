@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# test/benchmark_xlib.py
+# test/benchmark/benchmark_xlib.py
 # Python json benchmark (cross-language reference)
 
 import json

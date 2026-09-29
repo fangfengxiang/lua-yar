@@ -1,5 +1,5 @@
 #!/bin/bash
-# test/concurrent_openresty.sh
+# test/openresty/concurrent_openresty.sh
 # OpenResty 并发端到端测试编排：启动 nginx (2 workers, HTTP+TCP) + 运行 PHP 50 并发测试 + 停止 nginx
 #
 # 测试场景：
@@ -7,7 +7,11 @@
 #   - TCP:  PHP 50 并发 → OpenResty TCP 服务端  (2 workers, stream content_by_lua 协程并发)
 #   - 验证 requestId 数据完整性 + 日志协程异常检测
 #
-# 运行：bash test/concurrent_openresty.sh
+# 运行：bash test/openresty/concurrent_openresty.sh [scenario]
+#   scenario 可选值：
+#     all  — 运行 HTTP + TCP（默认）
+#     http — 仅 HTTP
+#     tcp  — 仅 TCP
 #
 # 环境要求：
 #   - OpenResty（含 stream-lua-module）
@@ -15,19 +19,20 @@
 
 set -e
 
+SCENARIO="${1:-all}"
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 NGINX_PREFIX="/tmp/yar_concurrent_nginx"
 HTTP_PORT="${CONCURRENT_HTTP_PORT:-9707}"
 TCP_PORT="${CONCURRENT_TCP_PORT:-9708}"
 
 # 端口分配见 test/PORTS.md（openresty job: 9707=并发HTTP, 9708=并发TCP）
-# interop job 通过环境变量覆盖为 9805/9806
 
 cd "$PROJECT_ROOT"
 
 # 加载共享测试函数（端口清理等）
-source "$SCRIPT_DIR/test_helpers.sh"
+source "$PROJECT_ROOT/test/test_helpers.sh"
 
 # trap：脚本退出时确保 nginx 停止（即使中途失败）
 cleanup() {
@@ -166,6 +171,8 @@ fi
 
 # ── 场景 1：PHP 50 并发 → OpenResty HTTP ──────────────────────
 
+if [ "$SCENARIO" = "all" ] || [ "$SCENARIO" = "http" ]; then
+
 if [ "$HAS_PHP_YAR" = true ]; then
     echo ""
     echo "--- Scenario 1: PHP 50 concurrent → OpenResty HTTP (2 workers) ---"
@@ -188,7 +195,11 @@ else
     echo "--- Scenario 1: PHP → OpenResty HTTP [SKIPPED: no PHP yar/pcntl] ---"
 fi
 
+fi  # end scenario 1 (HTTP)
+
 # ── 场景 2：PHP 50 并发 → OpenResty TCP ───────────────────────
+
+if [ "$SCENARIO" = "all" ] || [ "$SCENARIO" = "tcp" ]; then
 
 if [ "$HAS_PHP_YAR" = true ]; then
     echo ""
@@ -211,6 +222,8 @@ if [ "$HAS_PHP_YAR" = true ]; then
 else
     echo "--- Scenario 2: PHP → OpenResty TCP [SKIPPED: no PHP yar/pcntl] ---"
 fi
+
+fi  # end scenario 2 (TCP)
 
 # 停止 nginx
 echo ""

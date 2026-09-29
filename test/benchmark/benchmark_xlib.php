@@ -1,5 +1,5 @@
 <?php
-// test/benchmark_xlib.php
+// test/benchmark/benchmark_xlib.php
 // PHP json vs Python json vs lua-yar (cross-language reference)
 
 $sample = ['a' => 1, 'b' => 'hello world', 'c' => [1, 2, 3, 4, 5], 'd' => true, 'e' => 3.14];

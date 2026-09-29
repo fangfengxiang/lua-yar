@@ -1,5 +1,5 @@
 <?php
-// test/concurrent_php_to_openresty_tcp.php
+// test/e2e/concurrent_php_to_openresty_tcp.php
 // 并发端到端测试：PHP 客户端 50 并发 → OpenResty YAR TCP 服务端（2 workers，协程并发）
 //
 // 测试场景：
@@ -17,8 +17,8 @@
 //     c) 至少 2 个不同 worker_id 参与处理（验证多 worker 负载分担）
 //   - 同时测试 JSON 和 Msgpack 两个 packager
 //
-// 前置：bash test/concurrent_openresty.sh（启动 nginx stream 2 workers）
-// 运行：php test/concurrent_php_to_openresty_tcp.php [nginx_error_log_path]
+// 前置：bash test/e2e/concurrent_openresty.sh（启动 nginx stream 2 workers）
+// 运行：php test/e2e/concurrent_php_to_openresty_tcp.php [nginx_error_log_path]
 //
 // 注意：PHP Yar 的 tcp:// transport 支持取决于 yar 扩展编译选项。
 //       若 Yar_Client 不支持 tcp:// scheme，本脚本会输出 SKIP 提示并退出 0。

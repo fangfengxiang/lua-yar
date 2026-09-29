@@ -1,10 +1,8 @@
--- test/benchmark_xlib.lua
+-- test/benchmark/benchmark_xlib.lua
 -- 跨库性能对比：lua-yar vs dkjson vs cjson vs cmsgpack
--- 运行：luajit test/benchmark_xlib.lua
+-- 运行：luajit test/benchmark/benchmark_xlib.lua
 
 package.path = package.path .. ";./src/?.lua;./src/?/init.lua;./test/?.lua"
-package.path = package.path .. ";/Users/frank/.luarocks/share/lua/5.1/?.lua"
-package.cpath = package.cpath .. ";/Users/frank/.luarocks/lib/lua/5.1/?.so"
 
 local Json    = require("yar.packager.json")
 local Msgpack = require("yar.packager.msgpack")

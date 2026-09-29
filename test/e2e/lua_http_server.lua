@@ -1,14 +1,9 @@
--- test/interop_lua_server.lua
--- Lua HTTP 服务端（互操作测试用，PHP 客户端测 Lua 服务端）
--- 启动：lua test/interop_lua_server.lua [port]
--- 客户端连接：http://127.0.0.1:<port>/
+-- test/e2e/lua_http_server.lua
+-- E2E Lua HTTP 服务端：单请求互通 + 并发测试共用
+-- 启动：lua test/e2e/lua_http_server.lua [port]
+-- 端口来源：arg[1] > env LUA_HTTP_PORT > 默认 9801
 --
--- 端口来源（优先级递减）：
---   1. 命令行参数 arg[1]
---   2. 环境变量 LUA_HTTP_PORT
---   3. 默认值 9801（见 test/PORTS.md）
---
--- 方法与 PHP 互操作测试服务端（test/server.php）对齐：
+-- 方法与 PHP 互操作测试服务端（test/e2e/php_server.php）对齐：
 --   add(a, b)   → a + b
 --   sub(a, b)   → a - b
 --   upper(s)    → string.upper(s)

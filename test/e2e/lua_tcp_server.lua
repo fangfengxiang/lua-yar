@@ -1,14 +1,9 @@
--- test/interop_lua_tcp_server.lua
--- Lua TCP 服务端（互操作测试用，PHP/Lua 客户端测 Lua TCP 服务端）
--- 启动：lua test/interop_lua_tcp_server.lua [port]
--- 客户端连接：tcp://127.0.0.1:<port>
+-- test/e2e/lua_tcp_server.lua
+-- E2E Lua TCP 服务端：单请求互通 + 并发测试共用，keepalive 模式
+-- 启动：lua test/e2e/lua_tcp_server.lua [port]
+-- 端口来源：arg[1] > env LUA_TCP_PORT > 默认 9802
 --
--- 端口来源（优先级递减）：
---   1. 命令行参数 arg[1]
---   2. 环境变量 LUA_TCP_PORT
---   3. 默认值 9802（见 test/PORTS.md）
---
--- 方法与 PHP 互操作测试服务端（test/server.php）对齐：
+-- 方法与 PHP 互操作测试服务端（test/e2e/php_server.php）对齐：
 --   add(a, b)   → a + b
 --   sub(a, b)   → a - b
 --   upper(s)    → string.upper(s)
@@ -27,7 +22,6 @@ local server = Server.new({
     greet = function(name) return "hello, " .. name end,
 })
 
--- 启用 keepalive：单连接处理多条 YAR 消息，配合客户端 persistent 模式
 server:setopt("keepalive", true)
 
 local ok, err = server:listen("tcp://127.0.0.1:" .. port)

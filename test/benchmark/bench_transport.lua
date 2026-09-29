@@ -1,6 +1,6 @@
--- test/bench_transport.lua
+-- test/benchmark/bench_transport.lua
 -- lua-yar 综合传输层 benchmark
--- 用法: <runtime> test/bench_transport.lua <case> <mode> [provider]
+-- 用法: <runtime> test/benchmark/bench_transport.lua <case> <mode> [provider]
 --   case: 1=http+json  2=http+msgpack  3=tcp+json  4=tcp+msgpack
 --   mode: mock | real | all (默认 all)
 --   provider: yar-http | resty-http (仅 OpenResty HTTP real 模式)
@@ -24,22 +24,7 @@ else
     runtime_name = _VERSION and ("Lua-" .. _VERSION) or "Lua"
 end
 
--- Lua 5.1/5.3 需要自定义 luarocks tree 路径
-if _VERSION == "Lua 5.1" then
-    package.path = package.path
-        .. ";/Users/frank/.luarocks-5.1/share/lua/5.1/?.lua"
-        .. ";/Users/frank/.luarocks-5.1/share/lua/5.1/?/init.lua"
-    package.cpath = package.cpath
-        .. ";/Users/frank/.luarocks-5.1/lib/lua/5.1/?.so"
-elseif _VERSION == "Lua 5.3" then
-    package.path = package.path
-        .. ";/Users/frank/.luarocks-5.3/share/lua/5.3/?.lua"
-        .. ";/Users/frank/.luarocks-5.3/share/lua/5.3/?/init.lua"
-    package.cpath = package.cpath
-        .. ";/Users/frank/.luarocks-5.3/lib/lua/5.3/?.so"
-end
-
--- 项目源码路径
+-- 项目源码路径（C 扩展路径依赖运行时 LUA_CPATH，由 luarocks/Docker/CI 设置）
 package.path = package.path .. ";./src/?.lua;./src/?/init.lua"
 
 --------------------------------------------------------------------------------
@@ -74,7 +59,7 @@ local provider_type = arg[3] or "yar-http"
 
 local cfg = case_map[case_num]
 if not cfg then
-    print("Usage: <runtime> test/bench_transport.lua <case> <mode> [provider]")
+    print("Usage: <runtime> test/benchmark/bench_transport.lua <case> <mode> [provider]")
     print("  case: 1=http+json  2=http+msgpack  3=tcp+json  4=tcp+msgpack")
     print("  mode: mock | real | all")
     print("  provider: yar-http | resty-http (OpenResty HTTP only)")
@@ -167,14 +152,14 @@ local function run_real_benchmark()
         -- 纯 Lua HTTP 服务端（bench_http_server.lua），全链路纯 Lua
         local port = 9800
         url = "http://127.0.0.1:" .. port .. "/yar"
-        server_cmd = "lua test/bench_http_server.lua " .. port .. " > /dev/null 2>&1 &"
-        kill_cmd = "pkill -f 'bench_http_server.lua " .. port .. "' 2>/dev/null"
+        server_cmd = "lua test/benchmark/bench_http_server.lua " .. port .. " > /dev/null 2>&1 &"
+        kill_cmd = "pkill -f 'benchmark/bench_http_server.lua " .. port .. "' 2>/dev/null"
     else
         -- lua-yar TCP server (bench_server.lua)
         local port = 9600
         url = "tcp://127.0.0.1:" .. port
-        server_cmd = "lua test/bench_server.lua " .. port .. " > /dev/null 2>&1 &"
-        kill_cmd = "pkill -f 'bench_server.lua " .. port .. "' 2>/dev/null"
+        server_cmd = "lua test/benchmark/bench_server.lua " .. port .. " > /dev/null 2>&1 &"
+        kill_cmd = "pkill -f 'benchmark/bench_server.lua " .. port .. "' 2>/dev/null"
     end
 
     -- 启动服务端

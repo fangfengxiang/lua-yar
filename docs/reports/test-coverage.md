@@ -64,8 +64,6 @@
 |------|--------|---------|
 | `benchmark.lua` | 标准 Lua | JSON/Msgpack 编解码、协议 render/parse |
 | `benchmark_matrix.lua` | OpenResty | 跨运行时矩阵、C 扩展加速、cosocket I/O 往返 |
-| `benchmark_cosocket.lua` | OpenResty | 真实 cosocket TCP 往返、keepalive vs new-conn |
-| `benchmark_cext.lua` | OpenResty | cjson/cmsgpack vs 纯 Lua 编解码对比 |
 | `bench_server.lua` | 系统 Lua + luasocket | 基准测试辅助 TCP server（子进程） |
 
 **关键发现**（详见 `docs/reports/performance-benchmark.md`）：
@@ -117,7 +115,7 @@ K3 提案落地，验证真实 cosocket 行为：
 | 4 | HTTP 并发 | 10 协程并发 HTTP 请求 |
 | 5 | HTTP 错误路径 | 未知方法 → NOT_FOUND 错误码 |
 
-**nginx 配置**：`test/nginx.conf`（listen 127.0.0.1:9702，`content_by_lua_block` 引用 `test/nginx_e2e_server.lua`）
+**nginx 配置**：由 `test/openresty_http_e2e.sh` 动态生成（listen 127.0.0.1:9702，`content_by_lua_block` 引用 `test/nginx_e2e_server.lua`）
 
 ---
 
@@ -125,8 +123,9 @@ K3 提案落地，验证真实 cosocket 行为：
 
 | 文件 | 用途 |
 |------|------|
-| `test/server.php` | PHP YAR 服务端，供 Lua 客户端调用 |
-| `test/client_test.php` | PHP YAR 客户端，调用 Lua 服务端 |
+| `test/e2e/php_server.php` | PHP YAR 服务端，供 Lua 客户端调用 |
+| `test/e2e/php_client.php` | PHP YAR 客户端，调用 Lua 服务端 |
+| `test/e2e/interop.sh` | E2E 串联 runner（5 场景 × 2 packager = 40 断言） |
 
 **状态**：✅ 已纳入 CI（`interop` job + `openresty` job）。验证 Lua↔PHP 跨语言协议字节级兼容 + 并发场景。
 
@@ -136,14 +135,14 @@ K3 提案落地，验证真实 cosocket 行为：
 
 | 场景 | 并发数 | 服务端 | 文件 | 验证点 |
 |------|--------|--------|------|--------|
-| PHP → 原生 Lua HTTP（顺序） | 3 | `interop_lua_server.lua:9803` | `concurrent_php_to_lua_http.php` | 顺序处理不丢请求、不串数据 |
-| PHP → 原生 Lua TCP（顺序） | 3 | `interop_lua_tcp_server.lua:9804` | `concurrent_php_to_lua_tcp.php` | 同上，TCP 传输 |
+| PHP → 原生 Lua HTTP（顺序） | 3 | `e2e/lua_http_server.lua:9803` | `concurrent_php_to_lua_http.php` | 顺序处理不丢请求、不串数据 |
+| PHP → 原生 Lua TCP（顺序） | 3 | `e2e/lua_tcp_server.lua:9804` | `concurrent_php_to_lua_tcp.php` | 同上，TCP 传输 |
 | PHP → OpenResty HTTP（2 workers） | 50 | `nginx_concurrent_server.lua:9205` | `concurrent_php_to_openresty_http.php` | 协程并发、requestId 完整性、日志异常检测、多 worker 负载分担 |
 | PHP → OpenResty TCP（2 workers） | 50 | `nginx_stream_server.lua:9209` | `concurrent_php_to_openresty_tcp.php` | 同上，stream 模块 TCP |
 
 **编排脚本**：
-- `test/concurrent_e2e.sh` — 总编排（场景 1-4，原生 + OpenResty）
-- `test/concurrent_openresty.sh` — OpenResty 编排（场景 3-4，nginx 2 workers）
+- `test/e2e/concurrent_e2e.sh` — 原生编排（场景 1-2，PHP 3 并发 → Lua HTTP + TCP）
+- `test/openresty/concurrent_openresty.sh` — OpenResty 编排（场景 3-4，nginx 2 workers）
 
 **OpenResty handler**：
 - `test/nginx_concurrent_server.lua` — HTTP `content_by_lua` handler，记录 `[YAR-CONCURRENT] worker=X requestId=Y status=processing/done/error`
@@ -225,26 +224,18 @@ spec/                           # BDD 测试（busted）
 test/                           # 性能 + E2E + 互操作
 ├── benchmark.lua               # 性能基准（标准 Lua）
 ├── benchmark_matrix.lua        # 跨运行时矩阵基准
-├── benchmark_cosocket.lua      # cosocket I/O 基准
-├── benchmark_cext.lua          # C 扩展加速基准
 ├── bench_server.lua            # 基准辅助 TCP server
 ├── resty_test.lua              # OpenResty 兼容性测试
 ├── openresty_e2e_test.lua      # OpenResty E2E（cosocket TCP）
 ├── openresty_http_e2e_test.lua # OpenResty HTTP E2E（nginx）
 ├── openresty_http_e2e.sh       # HTTP E2E 编排脚本
 ├── nginx_e2e_server.lua        # nginx content_by_lua handler
-├── nginx.conf                  # 测试用 nginx 配置
-├── client_test.php             # PHP 互操作（客户端）
-├── server.php                  # PHP 互操作（服务端）
-├── interop.sh                  # 互操作编排脚本
-├── interop_lua_server.lua      # 互操作 Lua HTTP 服务端
-├── interop_lua_tcp_server.lua  # 互操作 Lua TCP 服务端
-├── concurrent_e2e.sh           # 并发测试总编排（原生 + OpenResty）
-├── concurrent_openresty.sh     # 并发测试 OpenResty 编排
-├── concurrent_php_to_lua_http.php    # PHP 3 并发 → 原生 Lua HTTP
-├── concurrent_php_to_lua_tcp.php     # PHP 3 并发 → 原生 Lua TCP
-├── concurrent_php_to_openresty_http.php # PHP 50 并发 → OpenResty HTTP
-├── concurrent_php_to_openresty_tcp.php  # PHP 50 并发 → OpenResty TCP
+├── concurrent_e2e.sh           # 并发测试编排（原生 HTTP + TCP）[e2e/]
+├── concurrent_openresty.sh     # 并发测试 OpenResty 编排 [openresty/]
+├── concurrent_php_to_lua_http.php    # PHP 3 并发 → 原生 Lua HTTP [e2e/]
+├── concurrent_php_to_lua_tcp.php     # PHP 3 并发 → 原生 Lua TCP [e2e/]
+├── concurrent_php_to_openresty_http.php # PHP 50 并发 → OpenResty HTTP [openresty/]
+├── concurrent_php_to_openresty_tcp.php  # PHP 50 并发 → OpenResty TCP [openresty/]
 ├── nginx_concurrent_server.lua # OpenResty HTTP handler（requestId 日志）
 └── nginx_stream_server.lua     # OpenResty stream TCP handler（requestId 日志）
 
@@ -280,8 +271,6 @@ lua test/benchmark.lua
 
 # 性能基准（OpenResty）
 resty test/benchmark_matrix.lua
-resty test/benchmark_cosocket.lua
-resty test/benchmark_cext.lua
 
 # OpenResty 兼容性测试
 resty test/resty_test.lua
@@ -292,12 +281,12 @@ resty test/openresty_e2e_test.lua
 # OpenResty HTTP E2E 测试（nginx content_by_lua）
 bash test/openresty_http_e2e.sh
 
-# PHP 互操作测试（需 PHP YAR 扩展）
-php test/client_test.php
+# PHP 互操作测试（Docker 方式，零依赖）
+bash test/e2e/docker.sh
 
 # 并发端到端测试（需 PHP + yar/msgpack/pcntl + Lua + luasocket）
-bash test/concurrent_e2e.sh
+bash test/e2e/concurrent_e2e.sh
 
 # 并发 OpenResty 测试（需 PHP + yar/msgpack/pcntl + OpenResty）
-bash test/concurrent_openresty.sh
+bash test/openresty/concurrent_openresty.sh
 ```

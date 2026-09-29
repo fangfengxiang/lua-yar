@@ -1,5 +1,5 @@
 <?php
-// test/concurrent_php_to_openresty_http.php
+// test/e2e/concurrent_php_to_openresty_http.php
 // 并发端到端测试：PHP 客户端 50 并发 → OpenResty YAR HTTP 服务端（2 workers，协程并发）
 //
 // 测试场景：
@@ -17,8 +17,8 @@
 //     c) 至少 2 个不同 worker_id 参与处理（验证多 worker 负载分担）
 //   - 同时测试 JSON 和 Msgpack 两个 packager
 //
-// 前置：bash test/concurrent_openresty.sh（启动 nginx 2 workers）
-// 运行：php test/concurrent_php_to_openresty_http.php [nginx_error_log_path]
+// 前置：bash test/e2e/concurrent_openresty.sh（启动 nginx 2 workers）
+// 运行：php test/e2e/concurrent_php_to_openresty_http.php [nginx_error_log_path]
 //
 // 约束：仅修改测试代码，不修改 src 类库代码
 

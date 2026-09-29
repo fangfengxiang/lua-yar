@@ -1,8 +1,8 @@
--- test/bench_http_server.lua
+-- test/benchmark/bench_http_server.lua
 -- 压测用纯 Lua HTTP 服务端（luasocket, HTTP/1.1 keepalive）
 -- 替代 PHP Yar HTTP 服务端，确保性能压测全链路纯 Lua（client + server）
 --
--- 启动：lua test/bench_http_server.lua [port]
+-- 启动：lua test/benchmark/bench_http_server.lua [port]
 
 package.path = package.path .. ";./src/?.lua;./src/?/init.lua"
 

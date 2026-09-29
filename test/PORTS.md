@@ -4,7 +4,7 @@
 >
 > 设计原则：不杀别人的端口、占用则等待 5 秒、避开常见软件端口。
 >
-> 最后更新：2026-07-19
+> 最后更新：2026-09-28
 
 ---
 
@@ -32,7 +32,7 @@
 
 | 端口 | 用途 | 文件 | 环境变量 |
 |------|------|------|----------|
-| 9600 | bench_server（luasocket TCP, keepalive） | `bench_server.lua` `benchmark_cosocket.lua` `benchmark_matrix.lua` | `BENCH_SERVER_PORT` |
+| 9600 | bench_server（luasocket TCP, keepalive） | `benchmark/bench_server.lua` `benchmark/benchmark_matrix.lua` | `BENCH_SERVER_PORT` |
 
 ---
 
@@ -42,13 +42,13 @@
 |------|------|------|----------|
 | 9700 | E2E cosocket TCP round-trip server | `openresty_e2e_test.lua` | — |
 | 9701 | E2E keepalive mode server | `openresty_e2e_test.lua` | — |
-| 9702 | HTTP E2E nginx（content_by_lua） | `openresty_http_e2e.sh` `nginx.conf` | `HTTP_E2E_PORT` |
+| 9702 | HTTP E2E nginx（content_by_lua） | `openresty_http_e2e.sh` | `HTTP_E2E_PORT` |
 | 9703 | FI: slow server（latency injection） | `openresty_e2e_test.lua` | — |
 | 9704 | FI: garbage bytes（脏数据注入） | `openresty_e2e_test.lua` | — |
 | 9705 | FI: mid-transaction kill（中断连） | `openresty_e2e_test.lua` | — |
 | 9706 | FI: pool exhaustion（连接池耗尽） | `openresty_e2e_test.lua` | — |
-| 9707 | 并发测试 OpenResty HTTP（nginx 2 workers） | `concurrent_openresty.sh` | `CONCURRENT_HTTP_PORT` |
-| 9708 | 并发测试 OpenResty TCP（nginx stream 2 workers） | `concurrent_openresty.sh` | `CONCURRENT_TCP_PORT` |
+| 9707 | 并发测试 OpenResty HTTP（nginx 2 workers） | `test/openresty/concurrent_openresty.sh` | `CONCURRENT_HTTP_PORT` |
+| 9708 | 并发测试 OpenResty TCP（nginx stream 2 workers） | `test/openresty/concurrent_openresty.sh` | `CONCURRENT_TCP_PORT` |
 | 9709-9711 | mock client URL（无真实 server，mock socket 测试） | `openresty_e2e_test.lua` | — |
 
 ---
@@ -57,13 +57,11 @@
 
 | 端口 | 用途 | 文件 | 环境变量 |
 |------|------|------|----------|
-| 9800 | PHP 内置 server（互操作） | `interop.sh` `server.php` | `PHP_PORT` |
-| 9801 | Lua 原生 HTTP server（互操作） | `interop.sh` `interop_lua_server.lua` | `LUA_HTTP_PORT` |
-| 9802 | Lua 原生 TCP server（互操作） | `interop.sh` `interop_lua_tcp_server.lua` | `LUA_TCP_PORT` |
+| 9800 | PHP 内置 server（E2E 互通） | `test/e2e/lua_to_php_http.sh` `test/e2e/php_server.php` | `PHP_PORT` |
+| 9801 | Lua 原生 HTTP server（E2E 互通） | `test/e2e/lua_to_lua_http.sh` `test/e2e/php_to_lua_http.sh` `test/e2e/lua_http_server.lua` | `LUA_HTTP_PORT` |
+| 9802 | Lua 原生 TCP server（E2E 互通） | `test/e2e/lua_to_lua_tcp.sh` `test/e2e/php_to_lua_tcp.sh` `test/e2e/lua_tcp_server.lua` | `LUA_TCP_PORT` |
 | 9803 | 并发测试 Lua HTTP server | `concurrent_e2e.sh` | `CONCURRENT_LUA_HTTP_PORT` |
 | 9804 | 并发测试 Lua TCP server | `concurrent_e2e.sh` | `CONCURRENT_LUA_TCP_PORT` |
-| 9805 | 并发测试 OpenResty HTTP（via concurrent_openresty.sh） | `concurrent_e2e.sh` → `concurrent_openresty.sh` | `CONCURRENT_HTTP_PORT` |
-| 9806 | 并发测试 OpenResty TCP（via concurrent_openresty.sh） | `concurrent_e2e.sh` → `concurrent_openresty.sh` | `CONCURRENT_TCP_PORT` |
 
 ---
 
@@ -72,7 +70,7 @@
 ```
 CI workflow (per-job env)
   └─ shell script (reads env, passes to subprocess)
-       ├─ Lua server: lua test/interop_lua_server.lua "$PORT"
+       ├─ Lua server: lua test/e2e/lua_http_server.lua "$PORT"
        ├─ PHP client: getenv("LUA_HTTP_PORT")
        └─ nginx.conf: listen 127.0.0.1:$PORT (heredoc 替换)
 ```
@@ -88,8 +86,6 @@ interop:
     LUA_TCP_PORT: 9802
     CONCURRENT_LUA_HTTP_PORT: 9803
     CONCURRENT_LUA_TCP_PORT: 9804
-    CONCURRENT_HTTP_PORT: 9805
-    CONCURRENT_TCP_PORT: 9806
 
 openresty:
   env:

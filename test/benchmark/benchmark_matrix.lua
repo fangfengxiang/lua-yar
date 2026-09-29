@@ -1,11 +1,11 @@
--- test/benchmark_matrix.lua
+-- test/benchmark/benchmark_matrix.lua
 -- 跨运行时 × 跨打包器 × 跨传输器 矩阵压测
 -- 运行：
---   lua5.1   test/benchmark_matrix.lua   (Lua 5.1)
---   lua5.3   test/benchmark_matrix.lua   (Lua 5.3)
---   luajit   test/benchmark_matrix.lua   (LuaJIT)
---   lua      test/benchmark_matrix.lua   (Lua 5.5)
---   resty    test/benchmark_matrix.lua    (OpenResty LuaJIT + cosocket)
+--   lua5.1   test/benchmark/benchmark_matrix.lua   (Lua 5.1)
+--   lua5.3   test/benchmark/benchmark_matrix.lua   (Lua 5.3)
+--   luajit   test/benchmark/benchmark_matrix.lua   (LuaJIT)
+--   lua      test/benchmark/benchmark_matrix.lua   (Lua 5.5)
+--   resty    test/benchmark/benchmark_matrix.lua    (OpenResty LuaJIT + cosocket)
 
 local package_path = package.path
 package.path = package_path .. ";./src/?.lua;./src/?/init.lua;./test/?.lua"
@@ -32,26 +32,7 @@ elseif _VERSION == "Lua 5.5" then
     runtime = "Lua-5.5"
 end
 
--- C 扩展路径（各运行时独立编译）
-local cpaths = {
-    ["Lua-5.1"]      = "/Users/frank/.luarocks/lib/lua/5.1/?.so",
-    ["Lua-5.3"]      = "/Users/frank/.luarocks53/lib/lua/5.3/?.so",
-    ["LuaJIT"]       = "/Users/frank/.luarocks/lib/lua/5.1/?.so",
-    ["OpenResty-LuaJIT"] = "/Users/frank/.luarocks-resty/lib/lua/5.1/?.so",
-    ["Lua-5.5"]      = "/opt/homebrew/lib/lua/5.5/?.so",
-}
--- 模糊匹配 cpath
-if runtime:match("LuaJIT") and not runtime:match("OpenResty") then
-    package.cpath = package.cpath .. ";" .. (cpaths["LuaJIT"] or "")
-elseif runtime:match("OpenResty") then
-    package.cpath = package.cpath .. ";" .. (cpaths["OpenResty-LuaJIT"] or "")
-elseif runtime == "Lua-5.1" then
-    package.cpath = package.cpath .. ";" .. (cpaths["Lua-5.1"] or "")
-elseif runtime == "Lua-5.3" then
-    package.cpath = package.cpath .. ";" .. (cpaths["Lua-5.3"] or "")
-elseif runtime == "Lua-5.5" then
-    package.cpath = package.cpath .. ";" .. (cpaths["Lua-5.5"] or "")
-end
+-- C 扩展路径依赖运行时 LUA_CPATH（由 luarocks/Docker/CI 设置）
 
 local Yar       = require("yar")
 local Json      = require("yar.packager.json")
@@ -215,7 +196,7 @@ if has_ngx and ngx.socket and ngx.socket.tcp then
     print("[OpenResty cosocket real I/O — handle_connection round-trip]")
 
     -- 启动 bench_server 子进程（端口由 BENCH_PORT 决定）
-    os.execute("lua test/bench_server.lua " .. BENCH_PORT .. " > /dev/null 2>&1 &")
+    os.execute("lua test/benchmark/bench_server.lua " .. BENCH_PORT .. " > /dev/null 2>&1 &")
     os.execute("sleep 1")
 
     local probe = ngx.socket.tcp()
@@ -291,7 +272,7 @@ if has_ngx and ngx.socket and ngx.socket.tcp then
         end
     end
 
-    os.execute("pkill -f bench_server.lua 2>/dev/null")
+    os.execute("pkill -f benchmark/bench_server.lua 2>/dev/null")
     print("")
 end
 
