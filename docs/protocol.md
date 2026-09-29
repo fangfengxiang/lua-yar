@@ -1,3 +1,7 @@
+---
+description: "YAR 二进制 RPC 协议完整规范 — 消息布局、Packager、header 字段、序列化格式定义"
+---
+
 # YAR 协议规范
 
 > Yar（Yet Another RPC Framework）二进制协议的完整规范。

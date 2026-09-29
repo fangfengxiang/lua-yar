@@ -1,3 +1,7 @@
+---
+description: "Lightweight, concurrent Lua RPC framework — zero-dependency, binary protocol, multi-transport, coroutine-friendly"
+---
+
 # lua-yar
 
 > **Lightweight, concurrent Lua RPC framework.**

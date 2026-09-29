@@ -9,6 +9,7 @@
 [![Test](https://github.com/fangfengxiang/lua-yar/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/fangfengxiang/lua-yar/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/fangfengxiang/lua-yar/branch/main/graph/badge.svg)](https://codecov.io/gh/fangfengxiang/lua-yar)
 [![Release](https://img.shields.io/github/v/release/fangfengxiang/lua-yar)](https://github.com/fangfengxiang/lua-yar/releases)
+[![Benchmark](https://img.shields.io/badge/benchmark-dashboard-blue.svg)](https://fangfengxiang.github.io/lua-yar/perf/bench/)
 
 > **轻量、并发的 Lua RPC 框架。**
 > Yar RPC 协议纯 Lua 实现的零依赖、协程亲和、多宿主兼容的轻量级 RPC 框架。详见 [协议规范](docs/protocol.md)。
@@ -210,8 +211,8 @@ lua-yar 是纯协议库，自身不提供并发调度，并发能力依赖宿主
 | **OpenResty E2E** | `resty test/openresty_e2e_test.lua` | cosocket TCP 往返、连接池、并发安全、故障注入 |
 | **OpenResty HTTP E2E** | `bash test/openresty_http_e2e.sh` | nginx `content_by_lua` 完整链路 |
 | **互操作测试** | `bash test/interop.sh` | Lua ↔ PHP Yar 双向端到端（JSON + Msgpack） |
-| **并发测试** | `bash test/concurrent_e2e.sh` | PHP → Lua 并发（3 原生顺序 + 50 OpenResty 2-worker），HTTP + TCP，requestId 完整性 + 协程日志异常检测 |
-| **性能基准** | `lua test/benchmark.lua` | 编解码 / 协议 / cosocket I/O 基准 |
+| **并发测试** | `bash test/e2e/concurrent_e2e.sh` | PHP → Lua 并发（3 原生顺序 + 50 OpenResty 2-worker），HTTP + TCP，requestId 完整性 + 协程日志异常检测 |
+| **性能基准** | `lua test/benchmark/benchmark_core.lua` | 编解码 / 协议 / cosocket I/O 基准 |
 
 CI 矩阵：4 个 job（`test` 多版本 Lua / `no-luasocket` 软依赖降级 / `openresty` E2E / `interop` PHP 互通）。
 
@@ -304,8 +305,8 @@ Yar 以二进制数据流交换 RPC 消息，一条完整消息由三部分组�
 
 ```
 +-------------------+-------------------+---------------------+
-| Packager Name     | Yar Header        | Body                |
-| 8 字节            | 82 字节           | body_len 字节       |
+| Yar Header        | Packager Name     | Body                |
+| 82 字节            | 8 字节            | (body_len - 8) 字节 |
 +-------------------+-------------------+---------------------+
 ```
 

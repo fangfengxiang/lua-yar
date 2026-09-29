@@ -1,3 +1,7 @@
+---
+description: "lua-yar 服务端并发实现示例 — 原生 Lua、copas、lua-eco、OpenResty 等宿主环境"
+---
+
 # 服务端并发实现示例
 
 > lua-yar 是纯协议库，`server:handle(spec)` 无 I/O 依赖（callback 模式）、`server.dispatcher:handle_message(data)` 无 I/O、无 yield，可被任意协程直接调用。并发能力依赖宿主环境注入。本文档列出不同宿主环境下的并发 server 实现示例。

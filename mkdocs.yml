@@ -32,6 +32,11 @@ theme:
   icon:
     repo: fontawesome/brands/github
 
+plugins:
+  - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+
 markdown_extensions:
   - admonition
   - pymdownx.details
@@ -66,3 +71,5 @@ nav:
       - Performance Benchmark: reports/performance-benchmark.md
       - Architecture Review: reports/architecture-review.md
       - Test Coverage: reports/test-coverage.md
+  - Perf:
+      - Benchmark: perf/index.md

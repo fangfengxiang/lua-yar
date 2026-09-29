@@ -236,7 +236,7 @@ function _M:set_options(opts)
 - 功能测试：`busted --coverage`（BDD 风格，自动采集覆盖率）
 - 互操作测试：`bash test/interop.sh`（Lua ↔ PHP Yar 双向端到端，JSON + Msgpack；需 PHP + yar/msgpack 扩展）
 - OpenResty E2E：`resty test/openresty_e2e_test.lua` + `bash test/openresty_http_e2e.sh`
-- 并发测试：`bash test/concurrent_e2e.sh`（PHP → Lua 原生 3 并发 + OpenResty 50 并发，HTTP + TCP，requestId 完整性 + 协程异常日志检测；需 PHP + yar/msgpack/pcntl 扩展 + OpenResty）
+- 并发测试：`bash test/e2e/concurrent_e2e.sh`（PHP → Lua 原生 3 并发 + OpenResty 50 并发，HTTP + TCP，requestId 完整性 + 协程异常日志检测；需 PHP + yar/msgpack/pcntl 扩展 + OpenResty）
 - 端口分配：所有测试监听端口集中管理在 [test/PORTS.md](../test/PORTS.md)，新增测试前先查此表避免冲突
 
 ## 提交规范
@@ -249,20 +249,14 @@ function _M:set_options(opts)
 
 ### 使用 release.sh（推荐）
 
-一条命令完成版本号检查、rockspec 生成、dist.ini 更新、git 提交：
-
 ```bash
-./scripts/release.sh 0.2.0        # 自动检测 LuaRocks 已有修订号，递增
-./scripts/release.sh 0.2.0 3      # 指定修订号（跳过自动检测）
+./scripts/release.sh 0.2.0
 ```
 
-脚本自动完成：
-1. 检查 LuaRocks 上 `lua-yar` 已有版本和修订号，自动选择下一个可用修订号
-2. 检查 OPM 上已有版本（提示是否冲突）
-3. 从最新 rockspec 模板生成新版本 rockspec
-4. 更新 `dist.ini` 版本号
-5. 清理同版本旧 rockspec 文件
-6. 提交 git commit
+脚本完成：
+1. 验证版本号格式
+2. 更新 `dist.ini` 版本号
+3. 提交 git commit
 
 脚本执行后，按提示推送：
 
@@ -272,15 +266,24 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-打 tag 后 CI 自动执行：lint rockspec → 上传 LuaRocks → 创建 GitHub Release → 构建上传 OPM。
+打 tag 后 CI 自动完成全部发布工作（`.github/workflows/release.yml`）：
 
-### 手动发版（不推荐）
+| 步骤 | Job | 说明 |
+|------|-----|------|
+| 1 | `prepare` | 从 `lua-yar-scm-1.rockspec` 生成版本 rockspec；查询 luarocks.org 自动确定 revision（新版本 → 1，重发 → 递增） |
+| 2 | `release` | 打 tarball + rockspec → 创建 GitHub Release（含 auto-generated notes） |
+| 3 | `luarocks` | lint rockspec → 上传 LuaRocks.org |
+| 4 | `opm` | 验证 dist.ini 版本 → opm build → 上传 OPM |
 
-1. 创建版本 rockspec（如 `lua-yar-0.2.0-1.rockspec`），设置 `tag = "v0.2.0"`
-2. 更新 `dist.ini` 版本号
-3. 更新 `CHANGELOG.md`，将 `[Unreleased]` 改为 `[0.2.0]` 并添加日期
-4. 提交：`git commit -am "release: v0.2.0"`
-5. 打 tag：`git tag v0.2.0 && git push origin v0.2.0`
+> **rockspec 策略**：仓库只保留 `lua-yar-scm-1.rockspec`（单一模板）。版本 rockspec 由 CI `prepare` job 用 `sed` 从 scm 生成，revision 通过 `luarocks search` 查询后自动确定，无需本地创建。
+
+### 手动发版
+
+1. 更新 `dist.ini` 版本号
+2. 更新 `CHANGELOG.md`，将 `[Unreleased]` 改为 `[0.2.0]` 并添加日期
+3. 提交：`git commit -am "release: v0.2.0"`
+4. 打 tag：`git tag v0.2.0 && git push origin v0.2.0`
+5. CI 自动完成 rockspec 生成 + 上传 LuaRocks + OPM
 
 ### 前置条件
 
@@ -305,6 +308,6 @@ gh release delete v0.2.0
 ### 版本号规则
 
 - 格式：`x.y.z`（语义化版本）
-- rockspec 修订号：同版本代码有改动时递增（如 `0.1.1-1` → `0.1.1-2`）
-- LuaRocks 已上传的修订号不可覆盖，必须递增
+- rockspec 修订号：CI `prepare` job 查询 luarocks.org 自动确定（新版本 → 1，同版本重发 → max+1），无需手动管理
+- LuaRocks 已上传的修订号不可覆盖，必须递增（CI 自动处理）
 - OPM 同版本上传会覆盖，无需递增

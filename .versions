@@ -1,0 +1,11 @@
+# lua-yar 版本号来源清单 — 单一真相源
+#
+# 格式: <路径> <scope> <正则>
+#   - 正则为 POSIX ERE，第一个捕获组即版本号
+#   - 空格分隔；正则作为第 3 字段，含空格的 [[:space:]] 等会原样保留
+#   - 以 # 开头的行和空行被忽略
+#
+# 新增版本文件: 只需在此追加一行，无需改脚本
+# 由 scripts/version-manager.sh (sync/check/list) 和 CI (release.yml) 读取
+dist.ini opm ^version[[:space:]]*=[[:space:]]*([^[:space:]]+)
+src/yar/init.lua runtime _M\.VERSION[[:space:]]*=[[:space:]]*"([^"]+)"

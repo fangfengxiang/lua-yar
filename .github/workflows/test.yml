@@ -59,11 +59,9 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
-      - name: Benchmark
-        run: lua test/benchmark.lua
-
   # 无 luasocket 环境测试：验证软依赖优雅降级
   no-luasocket:
+    needs: [test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -93,56 +91,34 @@ jobs:
 
   # OpenResty 兼容性 + 端到端测试
   # K3 提案：cosocket 注入、连接池参数透传、HTTP Provider 委托、content_by_lua 上下文、并发安全
+  # 使用 Docker 镜像打包全部依赖（OpenResty + Lua 5.1 + PHP 8.2 + yar/msgpack/pcntl）
+  # 本地复现：bash test/openresty/docker.sh
   openresty:
+    needs: [interop]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install OpenResty
-        run: |
-          wget -qO - https://openresty.org/package/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/openresty-archive-keyring.gpg
-          echo "deb [signed-by=/usr/share/keyrings/openresty-archive-keyring.gpg] http://openresty.org/package/ubuntu $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/openresty.list
-          sudo apt-get update
-          sudo apt-get install -y openresty
-
-      - name: Add OpenResty to PATH
-        run: echo "/usr/local/openresty/bin" >> $GITHUB_PATH
-
-      - name: Setup Lua 5.1 (for TCP server subprocess)
-        uses: leafo/gh-actions-lua@v13
-        with:
-          luaVersion: '5.1'
-
-      - name: Setup LuaRocks
-        uses: leafo/gh-actions-luarocks@v6
-
-      - name: Install luasocket, lua-resty-http and luacov
-        run: |
-          luarocks install luasocket
-          luarocks install lua-resty-http
-          luarocks install luacov
-
-      - name: Setup PHP with yar + msgpack + pcntl extensions
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: yar, msgpack, pcntl
-          coverage: none
+      - name: Build OpenResty Docker image
+        run: docker build -t lua-yar-openresty test/openresty/
 
       - name: Compatibility tests (resty CLI, with coverage)
-        run: resty -e 'require("luacov.runner").init()' test/resty_test.lua
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-openresty resty -e 'require("luacov.runner").init()' test/resty_test.lua
 
       - name: E2E tests — cosocket TCP + connection pool + HTTP provider + concurrency (with coverage)
-        run: resty -e 'require("luacov.runner").init()' test/openresty_e2e_test.lua
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-openresty resty -e 'require("luacov.runner").init()' test/openresty_e2e_test.lua
 
       - name: E2E tests — HTTP content_by_lua (nginx)
-        run: bash test/openresty_http_e2e.sh
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-openresty bash test/openresty_http_e2e.sh
 
-      - name: Concurrent tests — PHP → OpenResty (50 concurrent, 2 workers, HTTP + TCP)
-        run: bash test/concurrent_openresty.sh
+      - name: Concurrent — PHP 50 并发 → OpenResty HTTP (2 workers, 协程并发)
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-openresty bash test/openresty/concurrent_openresty.sh http
+
+      - name: Concurrent — PHP 50 并发 → OpenResty TCP (2 workers, stream 协程并发)
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-openresty bash test/openresty/concurrent_openresty.sh tcp
 
       - name: Generate E2E coverage report
-        run: luacov
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-openresty luacov
 
       - name: Upload E2E coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -152,39 +128,43 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
-  # PHP 互操作测试：lua-yar ↔ PHP Yar 双向端到端（JSON + Msgpack）
-  # 场景 1：Lua 客户端 → PHP Yar 服务端
-  # 场景 2：PHP 客户端 → Lua Yar 服务端
+  # E2E 测试：Lua 自操作 + PHP-Lua 互通（JSON + Msgpack）
+  # 场景 1：Lua → Lua (HTTP)    JSON + Msgpack
+  # 场景 2：Lua → Lua (TCP)     JSON + Msgpack
+  # 场景 3：PHP → Lua (HTTP)    JSON + Msgpack
+  # 场景 4：PHP → Lua (TCP)     JSON + Msgpack
+  # 场景 5：Lua → PHP (HTTP)    JSON + Msgpack
+  # 使用 Docker 镜像打包全部依赖（Lua 5.1 + luasocket + PHP 8.2 + yar/msgpack/pcntl）
+  # 本地复现：bash test/e2e/docker.sh
   interop:
+    needs: [test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup PHP with yar + msgpack + pcntl extensions
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: yar, msgpack, pcntl
-          coverage: none
+      - name: Build E2E Docker image
+        run: docker build -t lua-yar-e2e test/e2e/
 
-      - name: Setup Lua
-        uses: leafo/gh-actions-lua@v13
-        with:
-          luaVersion: '5.1'
+      - name: E2E environment check
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-e2e bash test/e2e/check_env.sh
 
-      - name: Setup LuaRocks
-        uses: leafo/gh-actions-luarocks@v6
+      - name: E2E — Lua → Lua (HTTP, JSON + Msgpack)
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-e2e bash test/e2e/lua_to_lua_http.sh
 
-      - name: Install dependencies
-        run: |
-          luarocks install luafilesystem
-          luarocks install luasocket
+      - name: E2E — Lua → Lua (TCP, JSON + Msgpack)
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-e2e bash test/e2e/lua_to_lua_tcp.sh
 
-      - name: Test rockspec
-        run: luarocks make --local
+      - name: E2E — PHP → Lua (HTTP, JSON + Msgpack)
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-e2e bash test/e2e/php_to_lua_http.sh
 
-      - name: Interop tests — Lua ↔ PHP (JSON + Msgpack)
-        run: bash test/interop.sh
+      - name: E2E — PHP → Lua (TCP, JSON + Msgpack)
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-e2e bash test/e2e/php_to_lua_tcp.sh
 
-      - name: Concurrent tests — PHP → Lua native (3 concurrent, HTTP + TCP)
-        run: bash test/concurrent_e2e.sh
+      - name: E2E — Lua → PHP (HTTP, JSON + Msgpack)
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-e2e bash test/e2e/lua_to_php_http.sh
+
+      - name: Concurrent — PHP 3 并发 → Lua HTTP (顺序处理)
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-e2e bash test/e2e/concurrent_e2e.sh native-http
+
+      - name: Concurrent — PHP 3 并发 → Lua TCP (顺序处理)
+        run: docker run --rm -v "$(pwd):/app" -w /app lua-yar-e2e bash test/e2e/concurrent_e2e.sh native-tcp

@@ -6,7 +6,14 @@ on:
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
+      - 'scripts/seo-optimize.sh'
   workflow_dispatch:
+  # benchmark 跑完（更新了 gh-pages 分支的 benchmark/）后重新部署文档站，
+  # 让站点内 /perf/benchmark/ 性能看板同步最新数据
+  workflow_run:
+    workflows: ["Benchmark"]
+    types: [completed]
+    branches: [main, master]
 
 permissions:
   contents: read
@@ -15,21 +22,96 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
+  # ── Stage 1: mkdocs build ────────────────────────────────────────
+  # 从 docs/ + mkdocs.yml 构建，仅动态生成 perf wrapper 页（不提交仓库）
   build:
+    # workflow_run 触发时，仅在 Benchmark 成功时才部署（失败时 benchmark 数据未 push 到 gh-pages，
+    # 部署出来和上次一样，白白跑一遍 build+optimize+deploy）
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pip install mkdocs-material
+        with:
+          fetch-depth: 0  # git-revision-date-localized 需要完整 git 历史
+
+      - run: pip install mkdocs-material mkdocs-git-revision-date-localized-plugin
+
+      - name: Generate perf wrapper page
+        # docs/perf/index.md 不提交到仓库——CI 中动态生成 iframe wrapper，
+        # 让 mkdocs 渲染出带主题导航的页面。实际 benchmark 数据在 Stage 2 合并。
+        run: |
+          mkdir -p docs/perf
+          cat > docs/perf/index.md << 'WRAPPER'
+          ---
+          description: "lua-yar 性能基准看板 — CI 持续追踪核心操作吞吐量与延迟趋势"
+          ---
+
+          # Benchmark
+
+          <iframe
+            src="benchmark/"
+            style="width: 100%; height: calc(100vh - 180px); min-height: 600px; border: none;"
+            loading="lazy"
+          ></iframe>
+
+          ??? note "看不到看板？"
+              性能看板在 CI 部署后可见。直接访问
+              [fangfengxiang.github.io/lua-yar/perf/benchmark/](https://fangfengxiang.github.io/lua-yar/perf/benchmark/)。
+          WRAPPER
+
       - run: mkdocs build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mkdocs-site
+          path: site
+          retention-days: 1
+
+  # ── Stage 2: 整合 + SEO 后处理 ───────────────────────────────────
+  # 下载 mkdocs 产物 → 合并 benchmark 数据 → 注入 SEO 标签 → 部署
+  optimize:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: mkdocs-site
+          path: site
+
+      - name: Merge benchmark dashboard into site
+        # 在临时独立 git 仓库中 clone gh-pages，把 benchmark/ 打 tar 后拷进 site/perf/benchmark/。
+        # 全程不碰 docs 仓库自身的 .git——纯文件拷贝。
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p site/perf
+          tmp=$(mktemp -d)
+          git clone --depth 1 --no-checkout \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            "$tmp" -b gh-pages 2>/dev/null || { echo "gh-pages branch not found, skip"; exit 0; }
+          git -C "$tmp" archive HEAD benchmark 2>/dev/null | tar -x -C site/perf || { echo "benchmark not on gh-pages yet, skip"; }
+          rm -rf "$tmp"
+          if [ -f site/perf/benchmark/index.html ]; then
+            echo "benchmark dashboard merged:"
+            ls -la site/perf/benchmark
+          fi
+
+      - name: SEO post-processing
+        # 注入 Open Graph / Twitter Card / JSON-LD 结构化数据到每页 <head>
+        run: bash scripts/seo-optimize.sh site
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
 
+  # ── Stage 3: 部署到 GitHub Pages ─────────────────────────────────
   deploy:
-    needs: build
+    needs: optimize
     runs-on: ubuntu-latest
     environment:
       name: github-pages
