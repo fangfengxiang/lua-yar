@@ -66,3 +66,5 @@ nav:
       - Performance Benchmark: reports/performance-benchmark.md
       - Architecture Review: reports/architecture-review.md
       - Test Coverage: reports/test-coverage.md
+  - Perf:
+      - Benchmark: perf/index.md

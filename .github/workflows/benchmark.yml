@@ -1,0 +1,155 @@
+name: Benchmark
+
+# CI 性能基准追踪
+# - 方案 A（benchmark job）：benchmark-action/github-action-benchmark
+#   push 到 main：跑 benchmark → 存储结果到 gh-pages 分支 → 生成 HTML 图表
+#   PR：跑 benchmark → 与 main 基准对比 → PR comment 显示性能差异
+#   性能回退 >200% 时 fail CI（fail-on-alert）
+# - 方案 B（bencher job）：bencherdev/bencher CLI → 上传 bencher.dev
+#   统计模型告警（T-Test），区分噪声 vs 真回退
+#   未配置 BENCHER_API_KEY 时优雅跳过
+#
+# 前置条件（仓库设置）：
+#   方案 A：gh-pages 分支（不存在时自动创建）、Pages Source: gh-pages / root
+#   方案 B：GitHub Secret BENCHER_API_KEY（见 yar-group/bencher-plan.md）
+#
+# 本地预览：lua test/benchmark/benchmark_core.lua --json
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  benchmark:
+    # 方案 A：benchmark-action（仓库内自主追踪，数据存 gh-pages 分支）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Lua
+        uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: '5.1'
+
+      - name: Setup LuaRocks
+        uses: leafo/gh-actions-luarocks@v6
+
+      - name: Install dependencies
+        run: |
+          luarocks install luafilesystem
+          luarocks install luasocket
+
+      - name: Run benchmark
+        run: lua test/benchmark/benchmark_core.lua --json | tee benchmark-output.txt
+
+      - name: Ensure gh-pages branch exists
+        # benchmark-action 不会自动创建 gh-pages 分支：它先 fetch 远程 gh-pages，
+        # 分支不存在时 fetch 失败（fatal: couldn't find remote ref gh-pages）。
+        # 此步骤在临时 git 仓库中创建空 gh-pages 分支并 push，不影响主工作树。
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! git ls-remote --exit-code --heads origin gh-pages > /dev/null 2>&1; then
+            tmp=$(mktemp -d)
+            cd "$tmp"
+            git init -q
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git checkout -q --orphan gh-pages
+            git commit -q --allow-empty -m "Initialize gh-pages branch for benchmark storage"
+            git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
+            cd - >/dev/null
+            rm -rf "$tmp"
+          fi
+
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: 'customBiggerIsBetter'
+          output-file-path: benchmark-output.txt
+          benchmark-data-dir-path: benchmark
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          comment-on-alert: true
+          alert-threshold: '200%'
+          fail-on-alert: true
+
+  bencher:
+    # 方案 B：Bencher 持续基准测试（统计分析增强，数据上传 bencher.dev）
+    # 与方案 A 并行运行，共用同一份 --json 输出，零额外采集成本。
+    #
+    # 前置条件（手动配置，见 yar-group/bencher-plan.md）：
+    #   1. 注册 https://bencher.dev 账号，创建 Project（名称 lua-yar）
+    #   2. 获取 API Key，配置 GitHub Secret: BENCHER_API_KEY
+    #   3. 在 bencher.dev 配置告警规则（T-Test，p<0.05，下降>5%）
+    #   4. 启用 Public Dashboard（bencher.dev/perf/lua-yar）
+    #
+    # 未配置 BENCHER_API_KEY 时优雅跳过，不阻断 CI。
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+    env:
+      BENCHER_KEY: ${{ secrets.BENCHER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: bencherdev/bencher@main
+
+      - name: Setup Lua
+        uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: '5.1'
+
+      - name: Setup LuaRocks
+        uses: leafo/gh-actions-luarocks@v6
+
+      - name: Install dependencies
+        run: |
+          luarocks install luafilesystem
+          luarocks install luasocket
+
+      - name: Run benchmark
+        run: lua test/benchmark/benchmark_core.lua --json | tee benchmark-output.txt
+
+      - name: Track base branch benchmarks
+        if: github.event_name == 'push'
+        run: |
+          if [ -z "$BENCHER_KEY" ]; then
+            echo "::notice::BENCHER_API_KEY not configured, skipping Bencher upload. See yar-group/bencher-plan.md"
+            exit 0
+          fi
+          bencher run \
+            --project lua-yar \
+            --key "$BENCHER_KEY" \
+            --branch main \
+            --testbed github-actions \
+            --adapter json \
+            --github-actions '${{ secrets.GITHUB_TOKEN }}' \
+            --file benchmark-output.txt
+
+      - name: Track pull request benchmarks
+        if: github.event_name == 'pull_request'
+        run: |
+          if [ -z "$BENCHER_KEY" ]; then
+            echo "::notice::BENCHER_API_KEY not configured, skipping Bencher upload. See yar-group/bencher-plan.md"
+            exit 0
+          fi
+          bencher run \
+            --project lua-yar \
+            --key "$BENCHER_KEY" \
+            --branch "${{ github.head_ref }}" \
+            --start-point main \
+            --start-point-clone-thresholds \
+            --start-point-reset \
+            --testbed github-actions \
+            --adapter json \
+            --github-actions '${{ secrets.GITHUB_TOKEN }}' \
+            --ci-number '${{ github.event.number }}' \
+            --file benchmark-output.txt

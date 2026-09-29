@@ -1,8 +1,10 @@
 # lua-yar 性能压测报告
 
 > 测试时间：2026-07-24
-> 压测脚本：`test/benchmark_matrix.lua` / `test/benchmark_cosocket.lua` / `test/benchmark_cext.lua`
+> 压测脚本：`test/benchmark_matrix.lua`
 > 测试样本：`{ method = "add", params = { 1, 2 }, provider = "p", token = "t" }`
+
+**[点击打开性能看板](https://fangfengxiang.github.io/lua-yar/perf/benchmark/)**
 
 ---
 
@@ -292,8 +294,6 @@ handle_connection 全链路开销分解（LuaJIT, mock cosocket）
 | 脚本 | 维度 | 运行方式 |
 |------|------|---------|
 | `test/benchmark_matrix.lua` | 5 运行时 × 4 打包器 × 2 传输器 矩阵 | `lua`/`luajit`/`resty` 通用 |
-| `test/benchmark_cosocket.lua` | cosocket 传输层专项 + 真实 I/O 往返 | `resty` (OpenResty) |
-| `test/benchmark_cext.lua` | C 扩展注入 vs 纯 Lua 编解码 | `lua`/`luajit`/`resty` 通用 |
 | `test/bench_server.lua` | 压测用最小 TCP 服务端（luasocket, keepalive 模式） | `lua test/bench_server.lua` |
 
 ### A.2 局限性

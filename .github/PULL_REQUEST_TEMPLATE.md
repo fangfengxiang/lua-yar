@@ -12,7 +12,7 @@ Brief description of what this PR changes and why.
 
 ## Testing
 
-- [ ] Local tests pass (`lua test/client_test.lua`)
+- [ ] Local tests pass (`lua test/benchmark.lua` + `busted spec/`)
 - [ ] CI passes
 - [ ] Added new test cases for new functionality
 - [ ] Updated existing tests if behavior changed

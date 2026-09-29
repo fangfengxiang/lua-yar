@@ -306,6 +306,7 @@ function _M:send(data)
 end
 
 --- Close the HTTP transport (no-op for HTTP, connections are per-request)
-function _M:close() end
+function _M:close() -- luacheck: ignore (no-op: HTTP 无持久连接，保留方法满足 transport 接口契约)
+end
 
 return _M

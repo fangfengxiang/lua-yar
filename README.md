@@ -9,6 +9,7 @@
 [![Test](https://github.com/fangfengxiang/lua-yar/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/fangfengxiang/lua-yar/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/fangfengxiang/lua-yar/branch/main/graph/badge.svg)](https://codecov.io/gh/fangfengxiang/lua-yar)
 [![Release](https://img.shields.io/github/v/release/fangfengxiang/lua-yar)](https://github.com/fangfengxiang/lua-yar/releases)
+[![Benchmark](https://img.shields.io/badge/benchmark-dashboard-blue.svg)](https://fangfengxiang.github.io/lua-yar/perf/benchmark/)
 
 > **Lightweight, concurrent Lua RPC framework.**
 > A zero-dependency, coroutine-friendly, multi-host compatible lightweight RPC framework — pure Lua implementation of the Yar RPC protocol. See [Protocol Specification](docs/protocol.md).
@@ -210,8 +211,8 @@ lua-yar is a pure protocol library and does not provide concurrency scheduling i
 | **OpenResty E2E** | `resty test/openresty_e2e_test.lua` | cosocket TCP round-trip, connection pool, concurrency safety, fault injection |
 | **OpenResty HTTP E2E** | `bash test/openresty_http_e2e.sh` | nginx `content_by_lua` full pipeline |
 | **Interoperability** | `bash test/interop.sh` | Lua ↔ PHP Yar bidirectional end-to-end (JSON + Msgpack) |
-| **Concurrent** | `bash test/concurrent_e2e.sh` | PHP → Lua concurrent (3 native sequential + 50 OpenResty 2-worker), HTTP + TCP, requestId integrity + coroutine log verification |
-| **Benchmark** | `lua test/benchmark.lua` | Codec / protocol / cosocket I/O benchmarks |
+| **Concurrent** | `bash test/e2e/concurrent_e2e.sh` | PHP → Lua concurrent (3 native sequential + 50 OpenResty 2-worker), HTTP + TCP, requestId integrity + coroutine log verification |
+| **Benchmark** | `lua test/benchmark/benchmark_core.lua` | Codec / protocol / cosocket I/O benchmarks |
 
 CI matrix: 4 jobs (`test` multi-version Lua / `no-luasocket` soft-dependency degradation / `openresty` E2E / `interop` PHP interop).
 
@@ -304,8 +305,8 @@ Yar exchanges RPC messages via binary data streams. A complete message consists 
 
 ```
 +-------------------+-------------------+---------------------+
-| Packager Name     | Yar Header        | Body                |
-| 8 bytes           | 82 bytes          | body_len bytes      |
+| Yar Header        | Packager Name     | Body                |
+| 82 bytes          | 8 bytes           | (body_len - 8) bytes|
 +-------------------+-------------------+---------------------+
 ```
 

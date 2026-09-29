@@ -810,8 +810,8 @@ YAR message framing for TCP transport. Shared by client and server TCP modules.
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `Framing.HEADER_TOTAL` | `90` | packager(8) + header(82) |
-| `Framing.HEADER_OFFSET` | `9` | Header starts at byte 9 |
+| `Framing.HEADER_TOTAL` | `82` | Header size (82 bytes). `body_len` covers packager(8) + body(N) |
+| `Framing.HEADER_OFFSET` | `1` | Header starts at byte 1 (first field in message) |
 | `Framing.DEFAULT_MAX_BODY_LEN` | `10485760` | 10MB max body |
 
 #### Framing.receive_exact
@@ -824,7 +824,7 @@ Reads exactly `n` bytes from socket. Loops until complete (TCP may return partia
 
 syntax: `data, err = Framing.receive_message(sock, max_body_len)`
 
-Receives a complete YAR message (packager + header + body). Reads 90-byte header first, validates body length, then reads body. `max_body_len` defaults to `DEFAULT_MAX_BODY_LEN`.
+Receives a complete YAR message (header + packager + body). Reads 82-byte header first, validates body length, then reads remaining `body_len` bytes (packager name + body). `max_body_len` defaults to `DEFAULT_MAX_BODY_LEN`.
 
 #### Framing.check_body_len
 
