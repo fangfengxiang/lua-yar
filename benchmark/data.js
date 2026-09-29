@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790615743478,
+  "lastUpdate": 1790644417614,
   "repoUrl": "https://github.com/fangfengxiang/lua-yar",
   "entries": {
     "Benchmark": [
@@ -61,6 +61,68 @@ window.BENCHMARK_DATA = {
           {
             "name": "Protocol.parse (Msgpack)",
             "value": 129954.51591943,
+            "unit": "ops/s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fangfengxiang836@qq.com",
+            "name": "fangfengxiang"
+          },
+          "committer": {
+            "email": "fangfengxiang836@qq.com",
+            "name": "fangfengxiang"
+          },
+          "distinct": true,
+          "id": "0d015a8b2d882bcd1bfc375edb4b636b8b7df4c5",
+          "message": "docs: generate perf wrapper in CI instead of committing to repo\n\n- Remove docs/perf/index.md from version control\n- Add CI step to generate docs/perf/index.md before mkdocs build\n- mkdocs.yml nav still references perf/index.md (generated in CI)",
+          "timestamp": "2026-09-29T09:13:01+08:00",
+          "tree_id": "299ab28a36f3a3157a8e6bb4a772d2a0c02a3573",
+          "url": "https://github.com/fangfengxiang/lua-yar/commit/0d015a8b2d882bcd1bfc375edb4b636b8b7df4c5"
+        },
+        "date": 1790644417125,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Json.pack",
+            "value": 116753.00551424,
+            "unit": "ops/s"
+          },
+          {
+            "name": "Json.unpack",
+            "value": 64527.535835367,
+            "unit": "ops/s"
+          },
+          {
+            "name": "Msgpack.pack",
+            "value": 132004.4881526,
+            "unit": "ops/s"
+          },
+          {
+            "name": "Msgpack.unpack",
+            "value": 176176.37369123,
+            "unit": "ops/s"
+          },
+          {
+            "name": "Protocol.render (JSON)",
+            "value": 122383.44200983,
+            "unit": "ops/s"
+          },
+          {
+            "name": "Protocol.parse (JSON)",
+            "value": 63791.702230541,
+            "unit": "ops/s"
+          },
+          {
+            "name": "Protocol.render (Msgpack)",
+            "value": 134541.69716278,
+            "unit": "ops/s"
+          },
+          {
+            "name": "Protocol.parse (Msgpack)",
+            "value": 101539.95495688,
             "unit": "ops/s"
           }
         ]
