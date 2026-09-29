@@ -1,13 +1,13 @@
 package = "lua-yar"
-version = "0.1.0-1"
+version = "0.1.2-1"
 
 source = {
     url = "git+https://github.com/fangfengxiang/lua-yar.git",
-    tag = "v0.1.0"
+    tag = "v0.1.2"
 }
 
 description = {
-    summary = "Yar RPC Framework for Lua",
+    summary = "Yar (Yet Another RPC) Framework",
     detailed = [[
         Pure Lua implementation of the Yar RPC protocol.
         Provides yar-client and yar-server with HTTP/TCP transport.
