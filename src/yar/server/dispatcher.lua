@@ -1,7 +1,7 @@
 -- yar/server/dispatcher.lua
 -- YAR 协议核心：纯协议处理，不感知任何传输层（ngx / luasocket）。
 --
--- 核心契约：handle_message(data) 接收一条完整 YAR 二进制消息（packager+header+body），
+-- 核心契约：handle_message(data) 接收一条完整 YAR 二进制消息（header+packager+body），
 -- 解析、派发到已注册的方法，返回 YAR 二进制响应消息。与 HTTP/TCP 无关，无 I/O、无 yield，
 -- reentrant，可被任意协程 / OpenResty location 直接调用。
 -- 传输层（如何拿到 data、如何把响应写回）由调用方负责，见 server/tcp、server/http。
@@ -206,11 +206,11 @@ function _M:pack(data)
 end
 
 --- Handle a YAR request message and return a response message
----@param data string YAR binary request message (packager + header + body)
+---@param data string YAR binary request message (header + packager + body)
 ---@return string|nil rendered YAR binary response message (nil on render error)
 ---@return string|nil err Error message (nil on success)
 function _M:handle_message(data)
-    -- 输入校验：data 必须是字符串且至少包含 packager(8) + header(82) = 90 字节
+    -- 输入校验：data 必须是字符串且至少包含 header(82) 字节（Framing.HEADER_TOTAL）
     -- 短于最小帧长直接拒绝，避免后续 string.sub/Header.unpack 对畸形输入级联报错
     if type(data) ~= "string" or #data < Framing.HEADER_TOTAL then
         local resp = Response.new({ id = 0 })
@@ -219,16 +219,18 @@ function _M:handle_message(data)
     end
     -- body 长度上限校验：防止恶意大 body 导致内存耗尽
     local max_body_len = self.options.max_body_len or DEFAULT_MAX_BODY_LEN
-    if #data > max_body_len + Framing.HEADER_TOTAL then
+    if #data > max_body_len + Framing.HEADER_TOTAL + Framing.PACKAGER_NAME_SIZE then
         local resp = Response.new({ id = 0 })
-        resp:set_error("body too large: " .. #data .. " bytes (max " .. max_body_len .. ")")
+        local actual_body = #data - Framing.HEADER_TOTAL - Framing.PACKAGER_NAME_SIZE
+        resp:set_error("body too large: " .. actual_body .. " bytes (max " .. max_body_len .. ")")
         return safe_render(resp, self.packager)
     end
-    -- 从消息头部读取 packager 名称，按客户端声明的 packager 解析与响应
+    -- 从消息中读取 packager 名称（header 之后 8 字节），按客户端声明的 packager 解析与响应
     -- 客户端声明的 packager 未知时回退到 self.packager。
     -- 注意：错误响应也用此 packager 渲染，packager_name 字段可能与请求头不匹配，
     -- 但这是最佳努力策略——客户端无法解析未知 packager 的响应。
-    local name = Util.trim_null(string.sub(data, 1, 8))
+    local name = Util.trim_null(string.sub(
+        data, Framing.HEADER_TOTAL + 1, Framing.HEADER_TOTAL + Framing.PACKAGER_NAME_SIZE))
     local packager = Packager.get(name)
     if not packager then
         packager = self.packager

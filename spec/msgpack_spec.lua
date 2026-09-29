@@ -279,8 +279,8 @@ describe("msgpack packager", function()
             local p = Packager.get(Packager.MSGPACK)
             local req = Request.new({ method = "add", params = {}, provider = "p", token = "t" })
             local deep_body = string.rep(string.char(0x91), 6) .. string.char(0x01)
-            local header = Header.new({ id = req.id, provider = "p", token = "t", body_len = #deep_body })
-            local msg = Util.pad_field("MSGPACK", 8) .. header:pack() .. deep_body
+            local header = Header.new({ id = req.id, provider = "p", token = "t", body_len = 8 + #deep_body })
+            local msg = header:pack() .. Util.pad_field("MSGPACK", 8) .. deep_body
             local resp = server.dispatcher:handle_message(msg)
             assert.is_not_nil(resp)
             local payload = Protocol.parse(resp, p)

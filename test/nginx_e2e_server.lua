@@ -1,6 +1,6 @@
 -- test/nginx_e2e_server.lua
 -- nginx content_by_lua 上下文中的 YAR HTTP 服务端 handler
--- 被 test/nginx.conf 的 content_by_lua_block 引用
+-- 被 openresty_http_e2e.sh 动态生成的 nginx.conf 的 content_by_lua_block 引用
 --
 -- 验证：handle_message 在 nginx 请求生命周期内正确工作
 --   - ngx.req.read_body() 读取请求体

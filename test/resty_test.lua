@@ -67,7 +67,8 @@ local function test_server_handle_message()
     local req2 = Request.new({ method = "add", params = { 7, 8 }, provider = "p", token = "t" })
     local msg2 = Protocol.render(req2, mp)
     local resp2 = server:handle_message(msg2)
-    assert_ok(string.sub(resp2, 1, 7) == Packager.MSGPACK, "resty: server response packager mismatch")
+    -- wire format: [header:82][packager_name:8][body] — packager name 起始于 Header.SIZE+1
+    assert_ok(string.sub(resp2, Header.SIZE + 1, Header.SIZE + 7) == Packager.MSGPACK, "resty: server response packager mismatch")
     local payload2 = Protocol.parse(resp2, mp)
     assert_ok(payload2.r == 15, "resty: server msgpack retval mismatch")
 

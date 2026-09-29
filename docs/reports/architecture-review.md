@@ -37,7 +37,7 @@ Yar-Lua 是 PHP Yar RPC 协议的纯 Lua 实现，定位为**协议库而非运�
 
 ### 2.1 协议层 (`protocol/`)
 
-**消息布局**：`[packager_name:8B][header:82B][body:N]`
+**消息布局**：`[header:82B][packager_name:8B][body:N]`
 
 ```lua
 -- yar/protocol/protocol.lua
@@ -48,9 +48,9 @@ function _M.render(message, packager)
         id       = message.id,
         provider = message.provider,
         token    = message.token,
-        body_len = #payload,
+        body_len = PACKAGER_NAME_SIZE + #payload,
     })
-    return packager_name .. header:pack() .. payload
+    return header:pack() .. packager_name .. payload
 end
 ```
 
@@ -163,8 +163,8 @@ yar-lua 的提供者抽象与 Go 的 `DialContext` / `Transport` 接口思路一
 ```lua
 -- yar/server/init.lua
 function _M:handle_message(data)
-    -- 从消息头部读取 packager 名称，按客户端声明的 packager 解析与响应
-    local name = Util.trim_null(string.sub(data, 1, 8))
+    -- 从 header 之后读取 packager 名称，按客户端声明的 packager 解析与响应
+    local name = Util.trim_null(string.sub(data, Header.SIZE + 1, Header.SIZE + 8))
     local packager = Packager.get(name)
     if not packager then packager = self.packager end
     -- pcall 保护：packager.unpack 可能因畸形数据抛错

@@ -1,6 +1,9 @@
 -- yar/protocol/protocol.lua
 -- Yar 协议：消息的渲染（打包）与解析（解包）
--- 消息布局：[packager_name:8][yar_header:82][body:body_len]
+-- 消息布局：[yar_header:82][packager_name:8][body:N]
+-- 与 PHP Yar / yar-c wire format 对齐：header 在前，packager name 紧随其后。
+-- body_len 语义与 PHP Yar 一致：包含 packager_name(8) + body(N)，即 body_len = 8 + N。
+-- 参见 yar_packager.c:75 — php_yar_packager_pack 返回值含 8 字节 packager name 前缀。
 
 local Util    = require("yar.util")
 local Header  = require("yar.protocol.header")
@@ -10,9 +13,9 @@ local string = string
 ---@class Protocol
 local _M = {}
 
-local PACKAGER_NAME_SIZE = 8
-local HEADER_OFFSET      = PACKAGER_NAME_SIZE + 1   -- header 起始位置（1-based）
-local BODY_OFFSET        = PACKAGER_NAME_SIZE + Header.SIZE + 1
+local PACKAGER_NAME_SIZE = Header.PACKAGER_NAME_SIZE  -- 单一来源在 header.lua
+local HEADER_OFFSET      = 1                           -- header 起始位置（1-based，在消息最前面）
+local BODY_OFFSET        = Header.SIZE + PACKAGER_NAME_SIZE + 1  -- body 起始位置（1-based）
 
 -- render/parse 调用 packager.pack/unpack。
 --
@@ -38,9 +41,9 @@ function _M.render(message, packager)
         id       = message.id,
         provider = message.provider,
         token    = message.token,
-        body_len = #payload,
+        body_len = PACKAGER_NAME_SIZE + #payload,
     })
-    return packager_name .. header:pack() .. payload
+    return header:pack() .. packager_name .. payload
 end
 
 --- Parse a YAR binary message
@@ -57,11 +60,13 @@ function _M.parse(data, packager)
     if not header then
         return nil, nil, err
     end
-    if #data < BODY_OFFSET - 1 + header.body_len then
+    -- body_len 包含 packager name（PHP Yar 语义），总消息长度 = Header.SIZE + body_len
+    if #data < Header.SIZE + header.body_len then
         return nil, nil, "body length mismatch: declared " .. header.body_len
-            .. " but only " .. (#data - BODY_OFFSET + 1) .. " bytes available"
+            .. " but only " .. (#data - Header.SIZE) .. " bytes available"
     end
-    local body = string.sub(data, BODY_OFFSET, BODY_OFFSET + header.body_len - 1)
+    local body_len = header.body_len - PACKAGER_NAME_SIZE
+    local body = string.sub(data, BODY_OFFSET, BODY_OFFSET + body_len - 1)
     local payload, _, perr = packager.unpack(body)
     if perr ~= nil then
         return nil, nil, perr

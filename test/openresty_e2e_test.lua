@@ -634,7 +634,7 @@ local function test_fault_injection_garbage_bytes()
                 client:settimeout(2)
                 local packager_name = Util.pad_field("JSON", 8)
                 local header = Header.new({ body_len = 0x40000000 })
-                local head = packager_name .. header:pack()
+                local head = header:pack() .. packager_name
                 pcall(function() client:send(head .. string.rep("x", 10)) end)
                 client:close()
             end

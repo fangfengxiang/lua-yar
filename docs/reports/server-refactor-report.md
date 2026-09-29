@@ -639,7 +639,7 @@ nginx worker → content_by_lua_block
   → Server.new(opts, service):handle({method="POST", data=YAR请求字节, writer=fn})
     → HttpTransport.serve_callback(spec, dispatcher, opts)
       → dispatcher:handle_message(data)           -- 纯协议：解析→派发→渲染
-        → Protocol.parse(data)              -- 解包 packager+header+body
+        → Protocol.parse(data)              -- 解包 header+packager+body
         → methods[method](params)          -- 派发到业务方法（pcall 隔离）
         → Protocol.render(response)        -- 渲染 YAR 响应
       → writer(200, {["Content-Type"]="application/octet-stream"}, resp)  -- 回调输出

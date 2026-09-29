@@ -1,6 +1,6 @@
 # 协议层设计决策
 
-协议层（`protocol/`）负责 YAR 二进制消息的渲染与解析。消息布局：`[packager_name:8][yar_header:82][body:body_len]`，最小帧 90 字节。
+协议层（`protocol/`）负责 YAR 二进制消息的渲染与解析。消息布局：`[yar_header:82][packager_name:8][body:body_len-8]`，`body_len` 含 packager name(8) + body(N)，最小帧 90 字节。
 
 ---
 

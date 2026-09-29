@@ -35,7 +35,7 @@ local function get_server()
 end
 
 --- 从 YAR 二进制消息中提取 requestId（transaction ID）
--- YAR 消息结构：packager(8) + header(82) + body
+-- YAR 消息结构：header(82) + packager(8) + body
 -- header 的前 4 字节是 requestId（big-endian u32）
 ---@param data string YAR binary message
 ---@return number requestId

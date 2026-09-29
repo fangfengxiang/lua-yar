@@ -7,6 +7,7 @@ local TcpTransport = require("yar.server.tcp")
 local Packager = require("yar.packager.packager")
 local Request = require("yar.message.request")
 local Protocol = require("yar.protocol.protocol")
+local Header = require("yar.protocol.header")
 local helpers = require("spec.helpers")
 
 describe("tcp transport serve", function()
@@ -41,7 +42,7 @@ describe("tcp transport serve", function()
         local payload1, header1 = Protocol.parse(resp_data, jp)
         assert.are.equal(30, payload1.r)
         assert.are.equal(req.id, header1.id)
-        local first_len = 8 + 82 + header1.body_len
+        local first_len = Header.SIZE + header1.body_len
         local payload2, header2 = Protocol.parse(string.sub(resp_data, first_len + 1), jp)
         assert.are.equal(15, payload2.r)
         assert.are.equal(req2.id, header2.id)

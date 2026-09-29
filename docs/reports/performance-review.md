@@ -173,15 +173,15 @@ end
 **Location**: `src/yar/protocol/protocol.lua:30`
 
 ```lua
-return packager_name .. header:pack() .. payload
+return header:pack() .. packager_name .. payload
 ```
 
-**Issue**: Three-way `..` concatenation. For large payloads (e.g., 1MB body), this creates an intermediate string of `packager_name + header` (90 bytes) then concatenates with the full payload, effectively copying the payload twice.
+**Issue**: Three-way `..` concatenation. For large payloads (e.g., 1MB body), this creates an intermediate string of `header + packager_name` (90 bytes) then concatenates with the full payload, effectively copying the payload twice.
 
 **Optimization**: Use `table.concat`:
 
 ```lua
-return table.concat({ packager_name, header:pack(), payload })
+return table.concat({ header:pack(), packager_name, payload })
 ```
 
 **Expected gain**: Minimal. `table.concat` with 3 elements has table-allocation overhead that may negate the benefit. Lua's `..` is optimized for small numbers of operands. For large payloads, the single `..` chain is already efficient because Lua 5.1/LuaJIT's `..` avoids intermediate copies when chaining (the VM batches consecutive `..` operations).

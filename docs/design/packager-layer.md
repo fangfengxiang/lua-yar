@@ -245,7 +245,7 @@ N3 曾以"cjson 注入后此优化自动消失"为由跳过。重新评估：纯
 
 **附带修复**：边界测试发现预存 bug——字符串以单独 `\` 结尾（未闭合）时 `pos` 越界导致 `string.char(nil)` 报隐晦错误，新增 `if pos > len then error("unterminated string") end` 统一报错。此 bug 在优化前的逐字节循环中同样存在（`while pos <= len` 只在循环顶检查，转义分支内 `pos+1` 后不检查）。
 
-**性能基准测试对比**（A/B 对比，`git stash` 隔离 `json.lua` 单文件，同环境同 session，`test/benchmark.lua`）：
+**性能基准测试对比**（A/B 对比，`git stash` 隔离 `json.lua` 单文件，同环境同 session，`test/benchmark/benchmark_core.lua`）：
 
 Pure Lua 5.5.0：
 

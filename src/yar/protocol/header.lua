@@ -18,7 +18,11 @@ local _M = {}
 _M.__index = _M
 
 ---@type integer
-_M.SIZE      = 82
+_M.SIZE              = 82
+---Packager name 字段长度（8 字节），紧跟 header 之后
+---提取为单一来源，供 protocol/framing/dispatcher 复用，避免重复定义魔数 8
+---@type integer
+_M.PACKAGER_NAME_SIZE = 8
 ---@type integer
 _M.MAGIC_NUM = 0x80DFEC60
 ---@type integer

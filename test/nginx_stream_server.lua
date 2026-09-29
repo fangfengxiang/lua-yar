@@ -57,7 +57,7 @@ local function handle_connection(sock)
     local worker_id = ngx.worker.id() or -1
 
     while true do
-        -- 读取完整 YAR 消息（packager + header + body）
+        -- 读取完整 YAR 消息（header + packager + body）
         local data, rerr = Framing.receive_message(sock, MAX_BODY_LEN)
         if not data then
             -- 连接关闭或读错误，退出 keepalive 循环

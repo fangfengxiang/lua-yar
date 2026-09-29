@@ -8,6 +8,7 @@ local Msgpack = require("yar.packager.msgpack")
 local Request = require("yar.message.request")
 local Response = require("yar.message.response")
 local Protocol = require("yar.protocol.protocol")
+local Header = require("yar.protocol.header")
 
 describe("packager", function()
     describe("Packager.get error paths", function()
@@ -282,7 +283,7 @@ describe("packager", function()
             -- protocol header packager name field carries "JSON", not "CJSON"
             local req = Request.new({ method = "echo", params = {} })
             local msg = Protocol.render(req, adapter)
-            local packager_name = string.sub(msg, 1, 8)
+            local packager_name = string.sub(msg, Header.SIZE + 1, Header.SIZE + 8)
             assert.are.equal("JSON\0\0\0\0", packager_name)
             -- restore
             Yar.register_packager(Yar.PACKAGER_JSON, Json)

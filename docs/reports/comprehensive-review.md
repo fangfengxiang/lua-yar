@@ -176,7 +176,7 @@ send (mock)                ~2%
 | # | 优化项 | 涉及维度 | 具体措施 | 预期收益 | 难度 |
 |---|--------|---------|---------|---------|------|
 | **P1-1** | **Header.pack 用 table.concat** | 性能 | `header.lua:43-49` 将 7 段 `..` 拼接改为 `table.concat({...})` | 标准 Lua header 打包 ~30% 提升，全链路 ~3% | 低 |
-| **P1-2** | **Protocol.render 用 table.concat** | 性能+Lua 风格 | `protocol.lua:28` 将 3 段 `..` 改为 `table.concat({packager_name, header:pack(), payload})` | 微弱(<2%)，但代码一致性更好 | 低 |
+| **P1-2** | **Protocol.render 用 table.concat** | 性能+Lua 风格 | `protocol.lua:28` 将 3 段 `..` 改为 `table.concat({header:pack(), packager_name, payload})` | 微弱(<2%)，但代码一致性更好 | 低 |
 | **P1-3** | **JSON encode_string 快速路径** | 性能 | `json.lua:27-44` 对纯 ASCII 字符串（无转义字符）走快速路径 `'"' .. s .. '"'`，慢速路径保留逐字节转义 | 标准 Lua JSON encode ~40-60% 提升，全链路 ~10-15% | 中 |
 | **P1-4** | **Tcp:open 返回 ok, err** | 工程化 | `tcp.lua:28-40` 解析失败时返回错误，而非静默 | 接口契约完整性 | 低 |
 | **P1-5** | **连接健康检查** | 工程化 | 持久连接加 ping 或过期时间，避免首次 send 才发现连接已断 | 减少首次失败延迟 | 中 |
