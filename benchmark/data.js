@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790846671511,
+  "lastUpdate": 1790865940491,
   "repoUrl": "https://github.com/fangfengxiang/lua-yar",
   "entries": {
     "Benchmark": [
@@ -619,6 +619,68 @@ window.BENCHMARK_DATA = {
           {
             "name": "Protocol.parse (Msgpack)",
             "value": 143815.77774134,
+            "unit": "ops/s"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fangfengxiang836@qq.com",
+            "name": "fangfengxiang"
+          },
+          "committer": {
+            "email": "fangfengxiang836@qq.com",
+            "name": "fangfengxiang"
+          },
+          "distinct": true,
+          "id": "ef4e12f9751cd6a4f93720415f253356d49693ac",
+          "message": "release: v0.1.2 — 升版本号至 0.1.2，标记 wire format 对齐与 CI/测试改造发布\n\n本次发布含三项主要变更：协议布局对齐 PHP Yar（header-first, body_len 含 packager name）、test/ 目录重组为 e2e/benchmark/openresty 三层、CI 接入 benchmark-action 与 release 流程优化。升级版本号至 0.1.2 作为发布标记。\n\n1 新建 lua-yar-0.1.2-1.rockspec（source 用 tag 引用）\n2 删除 lua-yar-0.1.0-1.rockspec、lua-yar-0.1.1-3.rockspec\n3 更新 lua-yar-scm-1.rockspec：summary 改为 \"Yar (Yet Another RPC) Framework\"；修复 build.type 误用（none→builtin，使 modules 表生效）\n4 更新 CHANGELOG.md：新增 v0.1.2 条目（wire format 对齐 / 常量重构 / 测试重组 / CI）\n5 删除 CITATION.cff（不再维护学术引用元数据）",
+          "timestamp": "2026-10-01T22:43:53+08:00",
+          "tree_id": "e4be325ddfaadfb0dacdeb8f42f60ccc5e05e26e",
+          "url": "https://github.com/fangfengxiang/lua-yar/commit/ef4e12f9751cd6a4f93720415f253356d49693ac"
+        },
+        "date": 1790865940135,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Json.pack",
+            "value": 109685.68470192,
+            "unit": "ops/s"
+          },
+          {
+            "name": "Json.unpack",
+            "value": 64101.947737682,
+            "unit": "ops/s"
+          },
+          {
+            "name": "Msgpack.pack",
+            "value": 130119.89246892,
+            "unit": "ops/s"
+          },
+          {
+            "name": "Msgpack.unpack",
+            "value": 174096.22298244,
+            "unit": "ops/s"
+          },
+          {
+            "name": "Protocol.render (JSON)",
+            "value": 114392.39336341,
+            "unit": "ops/s"
+          },
+          {
+            "name": "Protocol.parse (JSON)",
+            "value": 63216.799485162,
+            "unit": "ops/s"
+          },
+          {
+            "name": "Protocol.render (Msgpack)",
+            "value": 129619.98014222,
+            "unit": "ops/s"
+          },
+          {
+            "name": "Protocol.parse (Msgpack)",
+            "value": 101530.47030944,
             "unit": "ops/s"
           }
         ]
