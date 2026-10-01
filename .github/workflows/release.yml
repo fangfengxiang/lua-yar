@@ -102,7 +102,7 @@ jobs:
             -o lua-yar-${VERSION}.tar.gz HEAD
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: lua-yar v${{ needs.prepare.outputs.version }}
           body: |
